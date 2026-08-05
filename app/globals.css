@@ -189,8 +189,9 @@ body{
 .apibar .led{ width:6px;height:6px;border-radius:50%; background:var(--success); }
 .apibar .led.pending{ background:var(--accent); }
 
-.brand-top{ display:flex; align-items:center; gap:8px; }
-.brand-top img{ height:72px; }
+.topbar-spacer{ width:38px; flex:none; }
+.brand-top{ display:flex; align-items:center; justify-content:center; gap:8px; flex:1; }
+.brand-top img{ height:96px; }
 
 .gift-hero{ background:linear-gradient(150deg, #7B2E86 0%, var(--gift) 55%, #F0729E 100%); border-radius:var(--radius-lg); padding:24px 20px; color:#fff; position:relative; overflow:hidden; }
 .gift-hero:before{ content:"🎁"; position:absolute; right:-6px; bottom:-24px; font-size:120px; opacity:.18; transform:rotate(-10deg); }
