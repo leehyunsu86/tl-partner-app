@@ -196,8 +196,12 @@ body{
 .gift-hero .cap{ font-size:12.5px; opacity:.9; margin-top:8px; line-height:1.5; }
 
 .steps-h{ display:flex; gap:10px; margin-top:16px; }
-.steps-h .s{ flex:1; text-align:center; }
-.steps-h .s .n{ width:26px;height:26px;border-radius:50%; background:var(--primary-soft); color:var(--primary); font-size:12px; font-weight:800; display:flex;align-items:center;justify-content:center; margin:0 auto 6px; }
+.steps-h .s{ flex:1; text-align:center; position:relative; }
+.steps-h .s:not(:last-child):after{
+  content:""; position:absolute; top:13px; left:50%; width:calc(100% + 10px); height:2px;
+  background:var(--primary-soft); z-index:0;
+}
+.steps-h .s .n{ width:26px;height:26px;border-radius:50%; background:var(--primary-soft); color:var(--primary); font-size:12px; font-weight:800; display:flex;align-items:center;justify-content:center; margin:0 auto 6px; position:relative; z-index:1; }
 .steps-h .s p{ font-size:10.5px; color:var(--ink-soft); font-weight:600; margin:0; line-height:1.3; }
 
 .divider-label{ display:flex; align-items:center; gap:10px; margin:20px 0 12px; }
