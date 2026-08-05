@@ -28,10 +28,7 @@
 html,body{margin:0;padding:0;}
 body{
   font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-  background:
-    radial-gradient(1200px 600px at 15% -10%, #DCE7FB 0%, transparent 55%),
-    radial-gradient(1000px 600px at 100% 0%, #E9DFFB 0%, transparent 50%),
-    var(--bg);
+  background: var(--bg);
   color:var(--ink);
 }
 .mono{ font-family:'JetBrains Mono', ui-monospace, monospace; }
@@ -191,7 +188,7 @@ body{
 .apibar .led.pending{ background:var(--accent); }
 
 .brand-top{ display:flex; align-items:center; gap:8px; }
-.brand-top img{ height:24px; }
+.brand-top img{ height:40px; }
 
 .gift-hero{ background:linear-gradient(150deg, #7B2E86 0%, var(--gift) 55%, #F0729E 100%); border-radius:var(--radius-lg); padding:24px 20px; color:#fff; position:relative; overflow:hidden; }
 .gift-hero:before{ content:"🎁"; position:absolute; right:-6px; bottom:-24px; font-size:120px; opacity:.18; transform:rotate(-10deg); }
