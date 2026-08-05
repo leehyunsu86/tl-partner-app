@@ -779,6 +779,9 @@ function NewRequestSheet({ defaultType, defaultPhone, onClose, onSubmit }) {
   return (
     <>
       <div className="grabber"></div>
+      <div className="sheet-back" onClick={onClose}>
+        <Icon name="back" /> 뒤로가기
+      </div>
       <div className="sheet-head">
         <div>
           <h2>새 요청</h2>
@@ -837,6 +840,9 @@ function ReferralSheet({ onClose, onSubmit }) {
   return (
     <>
       <div className="grabber"></div>
+      <div className="sheet-back" onClick={onClose}>
+        <Icon name="back" /> 뒤로가기
+      </div>
       <div className="sheet-head">
         <div>
           <h2>고객 소개하기</h2>
