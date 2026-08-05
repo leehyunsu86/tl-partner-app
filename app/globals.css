@@ -190,7 +190,7 @@ body{
 .apibar .led.pending{ background:var(--accent); }
 
 .brand-top{ display:flex; align-items:center; gap:8px; }
-.brand-top img{ height:40px; }
+.brand-top img{ height:72px; }
 
 .gift-hero{ background:linear-gradient(150deg, #7B2E86 0%, var(--gift) 55%, #F0729E 100%); border-radius:var(--radius-lg); padding:24px 20px; color:#fff; position:relative; overflow:hidden; }
 .gift-hero:before{ content:"🎁"; position:absolute; right:-6px; bottom:-24px; font-size:120px; opacity:.18; transform:rotate(-10deg); }
