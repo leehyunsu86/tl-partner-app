@@ -304,6 +304,7 @@ function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewR
   return (
     <>
       <div className="topbar">
+        <div className="topbar-spacer"></div>
         <div className="brand-top">
           <img src="/logo.png" alt="TL" />
         </div>
