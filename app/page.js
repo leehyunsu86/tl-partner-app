@@ -12,8 +12,8 @@ import {
 
 export default function Page() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [loginCode, setLoginCode] = useState("MP-2291");
-  const [loginPhone, setLoginPhone] = useState("010-4821-7730");
+  const [loginCode, setLoginCode] = useState("");
+  const [loginPhone, setLoginPhone] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [merchantCode, setMerchantCode] = useState(null);
@@ -131,7 +131,7 @@ export default function Page() {
             <img src="/logo.png" alt="티엘정보통신" />
           </div>
           <h1>가맹점 파트너 로그인</h1>
-          <p>가맹점 코드와 담당자 연락처로 접속하세요.</p>
+          <p>가맹점 코드와 비밀번호(휴대폰번호)로 접속하세요.</p>
           <div className="field">
             <label>가맹점 코드</label>
             <input
@@ -142,9 +142,10 @@ export default function Page() {
             />
           </div>
           <div className="field">
-            <label>담당자 연락처</label>
+            <label>비밀번호 (휴대폰번호)</label>
             <input
-              type="tel"
+              type="password"
+              inputMode="numeric"
               value={loginPhone}
               onChange={(e) => setLoginPhone(e.target.value)}
               placeholder="010-0000-0000"
