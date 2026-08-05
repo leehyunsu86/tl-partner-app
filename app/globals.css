@@ -1,910 +1,207 @@
-"use client";
+:root{
+  --bg:#EEF2FA;
+  --frame:#0E1B33;
+  --surface:#FFFFFF;
+  --surface-alt:#F3F6FD;
+  --ink:#101A33;
+  --ink-soft:#5B6B8C;
+  --ink-faint:#93A1BF;
+  --primary:#2265F2;
+  --primary-deep:#1447B8;
+  --primary-soft:#E4ECFC;
+  --accent:#F2A93B;
+  --accent-soft:#FCEED2;
+  --gift:#C6459B;
+  --gift-soft:#FBE3F1;
+  --success:#189A67;
+  --success-soft:#DDF3E9;
+  --danger:#E4573D;
+  --danger-soft:#FBE4DF;
+  --line:#E2E8F5;
+  --radius-lg:22px;
+  --radius-md:16px;
+  --radius-sm:10px;
+  --shadow-card: 0 1px 2px rgba(16,26,51,.04), 0 8px 24px -12px rgba(16,26,51,.12);
+  --shadow-pop: 0 20px 60px -20px rgba(16,26,51,.35);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color:var(--ink);
+}
+.mono{ font-family:'JetBrains Mono', ui-monospace, monospace; }
 
-import { useEffect, useState, useCallback } from "react";
-import Icon from "@/components/Icon";
-import { Badge, MiniTrack, Track } from "@/components/Status";
-import {
-  REQUEST_TYPES,
-  stepsFor,
-  REFERRAL_STEP_DEFS,
-  BIZ_TYPES,
-} from "@/lib/constants";
-
-export default function Page() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [loginCode, setLoginCode] = useState("");
-  const [loginPhone, setLoginPhone] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [loginBusy, setLoginBusy] = useState(false);
-  const [merchantCode, setMerchantCode] = useState(null);
-
-  const [data, setData] = useState(null); // { store, notices, requests, referrals }
-  const [tab, setTab] = useState("home");
-  const [detail, setDetail] = useState(null); // { id, kind }
-  const [sheet, setSheet] = useState(null); // 'request' | 'referral' | null
-  const [sheetDefaultType, setSheetDefaultType] = useState("paper");
-  const [toastMsg, setToastMsg] = useState("");
-  const [toastShow, setToastShow] = useState(false);
-  const [jobsFilter, setJobsFilter] = useState("all");
-
-  const loadData = useCallback(() => {
-    if (!merchantCode) return;
-    fetch(`/api/bootstrap?code=${encodeURIComponent(merchantCode)}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => showToast("데이터를 불러오지 못했어요"));
-  }, [merchantCode]);
-
-  useEffect(() => {
-    if (loggedIn && merchantCode) loadData();
-  }, [loggedIn, merchantCode, loadData]);
-
-  function showToast(msg) {
-    setToastMsg(msg);
-    setToastShow(true);
-    setTimeout(() => setToastShow(false), 2400);
-  }
-
-  async function doLogin() {
-    if (!loginCode.trim() || !loginPhone.trim()) return;
-    setLoginBusy(true);
-    setLoginError("");
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: loginCode.trim(), phone: loginPhone.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setLoginError(json.error || "로그인에 실패했어요.");
-        setLoginBusy(false);
-        return;
-      }
-      setMerchantCode(json.merchant.code);
-      setLoggedIn(true);
-    } catch (e) {
-      setLoginError("서버에 연결하지 못했어요. Supabase 환경변수 설정을 확인해주세요.");
-    }
-    setLoginBusy(false);
-  }
-
-  function logout() {
-    setLoggedIn(false);
-    setMerchantCode(null);
-    setData(null);
-    setTab("home");
-    setDetail(null);
-  }
-
-  function openDetail(id, kind) {
-    setDetail({ id, kind });
-  }
-  function closeDetail() {
-    setDetail(null);
-  }
-  function goTab(t) {
-    setTab(t);
-    setDetail(null);
-  }
-
-  async function submitRequest({ type, note, phone }) {
-    const reason = note.length > 18 ? note.slice(0, 18) + "…" : note;
-    const res = await fetch("/api/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: merchantCode, type, reason, note, phone }),
-    });
-    if (!res.ok) {
-      showToast("요청 접수에 실패했어요");
-      return;
-    }
-    setSheet(null);
-    showToast("요청이 접수되었어요. 임직원 시스템으로 전달됩니다.");
-    setTab("jobs");
-    setJobsFilter("all");
-    loadData();
-  }
-
-  async function submitReferral(payload) {
-    const res = await fetch("/api/referrals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: merchantCode, ...payload }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      showToast(err.error || "소개 접수에 실패했어요");
-      return;
-    }
-    setSheet(null);
-    showToast("소개가 접수되었어요! 심사 진행 상황을 이벤트 탭에서 확인하세요.");
-    setTab("referral");
-    loadData();
-  }
-
-  if (!loggedIn) {
-    return (
-      <div className="app-shell">
-        <div id="login">
-          <div className="login-logo">
-            <img src="/logo.png" alt="티엘정보통신" />
-          </div>
-          <h1>가맹점 파트너 로그인</h1>
-          <p>가맹점 코드와 비밀번호(휴대폰번호)로 접속하세요.</p>
-          <div className="field">
-            <label>가맹점 코드</label>
-            <input
-              type="text"
-              value={loginCode}
-              onChange={(e) => setLoginCode(e.target.value)}
-              placeholder="예: MP-2291"
-            />
-          </div>
-          <div className="field">
-            <label>비밀번호 (휴대폰번호)</label>
-            <input
-              type="password"
-              inputMode="numeric"
-              value={loginPhone}
-              onChange={(e) => setLoginPhone(e.target.value)}
-              placeholder="010-0000-0000"
-            />
-          </div>
-          {loginError && (
-            <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 14, fontWeight: 600 }}>
-              {loginError}
-            </div>
-          )}
-          <button className="btn btn-primary btn-block" onClick={doLogin} disabled={loginBusy}>
-            {loginBusy ? "확인 중…" : "로그인"}
-          </button>
-          <div className="apibar">
-            <span className="led"></span> Supabase 데이터베이스 연동됨
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="app-shell">
-        <div className="view" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-          불러오는 중…
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="app-shell">
-      <div id="app">
-        <div>
-          {detail ? (
-            detail.kind === "referral" ? (
-              <ReferralDetail data={data} id={detail.id} onBack={closeDetail} />
-            ) : (
-              <RequestDetail data={data} id={detail.id} onBack={closeDetail} />
-            )
-          ) : tab === "home" ? (
-            <Home
-              data={data}
-              onOpenNotices={() => showToast("공지 상세는 준비 중이에요")}
-              onOpenDetail={openDetail}
-              onGoTab={goTab}
-              onNewRequest={(type) => {
-                setSheetDefaultType(type);
-                setSheet("request");
-              }}
-              onNewReferral={() => setSheet("referral")}
-            />
-          ) : tab === "jobs" ? (
-            <Jobs
-              data={data}
-              filter={jobsFilter}
-              setFilter={setJobsFilter}
-              onOpenDetail={openDetail}
-              onNewRequest={() => {
-                setSheetDefaultType("paper");
-                setSheet("request");
-              }}
-            />
-          ) : tab === "referral" ? (
-            <Referral
-              data={data}
-              onOpenDetail={openDetail}
-              onNewReferral={() => setSheet("referral")}
-            />
-          ) : (
-            <My data={data} onLogout={logout} onToast={showToast} />
-          )}
-        </div>
-
-        <div id="tabbar">
-          <TabButton active={tab === "home" && !detail} onClick={() => goTab("home")} label="홈" iconPath="M3 11l9-8 9 8M5 10v10h14V10" />
-          <TabButton active={tab === "jobs" && !detail} onClick={() => goTab("jobs")} label="요청함" iconPath="M9 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-3M9 15L19 5M13 5h6v6" />
-          <TabButton active={tab === "referral" && !detail} onClick={() => goTab("referral")} label="이벤트" iconPath="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 3 6.5 3 3 5 3 6.5 5 9 12 7zM12 7s3-4 5.5-4S21 5 21 6.5 19 9 12 7z" />
-          <TabButton active={tab === "my" && !detail} onClick={() => goTab("my")} label="마이" iconPath="M12 8a4 4 0 100-8 4 4 0 000 8zM4 21c1.6-4 5-6 8-6s6.4 2 8 6" />
-        </div>
-
-        <div className={`sheet-backdrop ${sheet ? "show" : ""}`} onClick={() => setSheet(null)}></div>
-        <div className={`sheet ${sheet ? "show" : ""}`}>
-          {sheet === "request" && (
-            <NewRequestSheet
-              defaultType={sheetDefaultType}
-              defaultPhone={data.store.phone}
-              onClose={() => setSheet(null)}
-              onSubmit={submitRequest}
-            />
-          )}
-          {sheet === "referral" && (
-            <ReferralSheet onClose={() => setSheet(null)} onSubmit={submitReferral} />
-          )}
-        </div>
-
-        <div className={`toast ${toastShow ? "show" : ""}`}>{toastMsg}</div>
-      </div>
-    </div>
-  );
+/* app shell fills the viewport, centered as a column on wide screens */
+.app-shell{
+  width:100%; max-width:480px; margin:0 auto;
+  height:100dvh; min-height:100vh;
+  background:var(--bg);
+  position:relative;
+  display:flex; flex-direction:column;
+  box-shadow:0 0 60px -20px rgba(16,26,51,.15);
 }
 
-/* ---------------- shared bits ---------------- */
+#app{ flex:1; display:flex; flex-direction:column; min-height:0; }
+.view{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 18px 100px; }
+.topbar{ padding:6px 4px 14px; flex:none; display:flex; align-items:center; justify-content:space-between; }
+.topbar h1{ font-size:20px; margin:0; letter-spacing:-.02em; }
+.topbar .sub{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+.icon-btn{ width:38px;height:38px;border-radius:12px;background:var(--surface); border:1px solid var(--line); display:flex;align-items:center;justify-content:center; color:var(--ink-soft); cursor:pointer; flex:none; }
+.icon-btn:hover{ color:var(--primary); border-color:var(--primary-soft); }
 
-function TabButton({ active, onClick, label, iconPath }) {
-  return (
-    <button className={`tab ${active ? "active" : ""}`} onClick={onClick}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d={iconPath} />
-      </svg>
-      {label}
-    </button>
-  );
+#tabbar{ position:sticky; left:0; right:0; bottom:0; flex:none; background:rgba(255,255,255,.9); backdrop-filter:blur(14px); border-top:1px solid var(--line); display:flex; padding:10px 8px calc(14px + env(safe-area-inset-bottom,0px)); z-index:40; }
+.tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; color:var(--ink-faint); font-size:11px; font-weight:600; cursor:pointer; padding:4px 0; font-family:inherit; position:relative; }
+.tab svg{ width:22px; height:22px; }
+.tab.active{ color:var(--primary); }
+.tab .dot{ position:absolute; top:-2px; right:22%; width:7px;height:7px;border-radius:50%;background:var(--gift); border:1.5px solid var(--surface); }
+
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow-card); padding:18px; }
+.section-title{ font-size:13px; font-weight:700; color:var(--ink-soft); letter-spacing:.02em; margin:22px 2px 10px; display:flex; align-items:center; justify-content:space-between; }
+.section-title .link{ font-size:12px; color:var(--primary); font-weight:600; cursor:pointer; }
+
+.badge{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:4px 9px 4px 8px; border-radius:999px; }
+.badge.received{ background:var(--surface-alt); color:var(--ink-soft); }
+.badge.assigned{ background:var(--primary-soft); color:var(--primary); }
+.badge.scheduled{ background:var(--accent-soft); color:#9A6212; }
+.badge.in_progress{ background:var(--accent-soft); color:#9A6212; }
+.badge.processing{ background:var(--primary-soft); color:var(--primary); }
+.badge.reviewing{ background:var(--accent-soft); color:#9A6212; }
+.badge.rewarded{ background:var(--gift-soft); color:var(--gift); }
+.badge.done{ background:var(--success-soft); color:var(--success); }
+.badge .b-dot{ width:6px;height:6px;border-radius:50%; background:currentColor; }
+
+.btn{ border:none; border-radius:14px; font-family:inherit; font-weight:700; cursor:pointer; font-size:14.5px; padding:14px 18px; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-primary{ background:var(--primary); color:#fff; box-shadow:0 10px 24px -10px rgba(34,101,242,.55); }
+.btn-primary:active{ transform:translateY(1px); }
+.btn-gift{ background:var(--gift); color:#fff; box-shadow:0 10px 24px -10px rgba(198,69,155,.55); }
+.btn-ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line); }
+.btn-block{ width:100%; }
+.btn-sm{ padding:9px 14px; font-size:13px; border-radius:11px; }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+.hero{ background:linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%); border-radius:var(--radius-lg); padding:22px; color:#fff; position:relative; overflow:hidden; box-shadow:0 16px 34px -16px rgba(20,71,184,.6); }
+.hero:before{ content:""; position:absolute; right:-40px; top:-50px; width:180px; height:180px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); }
+.hero .store{ font-size:12.5px; opacity:.8; font-weight:600; }
+.hero .name{ font-size:21px; font-weight:800; margin-top:4px; letter-spacing:-.02em; }
+.hero .stats{ display:flex; gap:10px; margin-top:18px; position:relative; z-index:2; }
+.hero .stat{ flex:1; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.18); border-radius:14px; padding:12px 12px; }
+.hero .stat b{ display:block; font-size:19px; margin-top:2px; }
+.hero .stat span{ font-size:11px; opacity:.85; font-weight:600; }
+
+.gift-banner{ margin-top:14px; border-radius:18px; padding:16px 16px; position:relative; overflow:hidden; background:linear-gradient(120deg, #7B2E86 0%, var(--gift) 55%, #F0729E 100%); color:#fff; cursor:pointer; box-shadow:0 14px 28px -14px rgba(198,69,155,.6); }
+.gift-banner:before{ content:"🎁"; position:absolute; right:10px; bottom:-14px; font-size:64px; opacity:.25; transform:rotate(-12deg); }
+.gift-banner .eyebrow{ font-size:11px; font-weight:800; background:rgba(255,255,255,.22); display:inline-block; padding:3px 9px; border-radius:999px; letter-spacing:.02em; }
+.gift-banner .title{ font-size:16.5px; font-weight:800; margin-top:9px; }
+.gift-banner .desc{ font-size:12.5px; margin-top:4px; opacity:.92; }
+
+.quick-row{ display:flex; gap:8px; margin-top:16px; }
+.quick{ flex:1; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:13px 6px; text-align:center; cursor:pointer; }
+.quick:hover{ border-color:var(--primary-soft); }
+.quick .ic{ width:34px;height:34px;border-radius:11px;background:var(--primary-soft);color:var(--primary); display:flex;align-items:center;justify-content:center;margin:0 auto 7px; }
+.quick span{ font-size:11px; font-weight:700; display:block; line-height:1.3; }
+
+.list-item{ display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line); cursor:pointer; }
+.list-item:last-child{ border-bottom:none; }
+.list-item .li-ic{ width:38px;height:38px;border-radius:11px; flex:none; display:flex;align-items:center;justify-content:center; }
+.list-item .li-title{ font-size:14px; font-weight:700; }
+.list-item .li-sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+.list-item .li-right{ margin-left:auto; text-align:right; }
+.chev{ color:var(--ink-faint); }
+
+.seg{ display:flex; background:var(--surface-alt); border-radius:13px; padding:4px; gap:4px; margin-bottom:14px; }
+.seg button{ flex:1; border:none; background:transparent; padding:9px 0; border-radius:10px; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:inherit; }
+.seg button.active{ background:var(--surface); color:var(--primary); box-shadow:var(--shadow-card); }
+
+.req-card{ margin-bottom:12px; cursor:pointer; }
+.req-card .req-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+.req-card .req-id{ font-size:11px; color:var(--ink-faint); margin-top:2px; }
+.req-card .req-title{ font-size:15px; font-weight:800; margin-top:8px; }
+.req-card .req-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+.mini-track{ display:flex; align-items:center; gap:0; margin-top:14px; }
+.mini-track .seg-line{ flex:1; height:3px; background:var(--line); position:relative; border-radius:2px; }
+.mini-track .seg-line.on{ background:var(--primary); }
+.mini-track .node{ width:9px;height:9px;border-radius:50%; background:var(--line); flex:none; margin:0 -1px; z-index:2; }
+.mini-track .node.on{ background:var(--primary); }
+.mini-track .node.cur{ background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+
+.track{ position:relative; padding-left:30px; margin-top:6px; }
+.track-step{ position:relative; padding-bottom:26px; }
+.track-step:last-child{ padding-bottom:0; }
+.track-step:before{ content:""; position:absolute; left:-21px; top:22px; bottom:-4px; width:2px; background-image:linear-gradient(var(--line) 60%, transparent 0%); background-size: 2px 8px; background-repeat:repeat-y; }
+.track-step:last-child:before{ display:none; }
+.track-step.done:before{ background-image:linear-gradient(var(--primary) 60%, transparent 0%); }
+.track-node{ position:absolute; left:-28px; top:0; width:15px; height:15px; border-radius:50%; background:var(--surface); border:2.5px solid var(--line); }
+.track-step.done .track-node{ border-color:var(--primary); background:var(--primary); }
+.track-step.current .track-node{ border-color:var(--accent); background:var(--accent-soft); }
+.track-step.current .track-node:after{ content:""; position:absolute; inset:-6px; border-radius:50%; border:2px solid var(--accent); animation:pulse 1.8s ease-out infinite; }
+@keyframes pulse{ 0%{ transform:scale(.7); opacity:.9; } 100%{ transform:scale(1.9); opacity:0; } }
+@media (prefers-reduced-motion: reduce){ .track-step.current .track-node:after{ animation:none; } }
+.track-label{ font-size:14px; font-weight:700; }
+.track-time{ font-size:12px; color:var(--ink-faint); margin-top:2px; }
+.track-note{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; background:var(--surface-alt); border-radius:10px; padding:9px 11px; }
+.track-step.pending .track-label{ color:var(--ink-faint); }
+
+.kv-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px; gap:14px; }
+.kv-row:last-child{ border-bottom:none; }
+.kv-row .k{ color:var(--ink-soft); flex:none; }
+.kv-row .v{ font-weight:700; text-align:right; }
+
+.field{ margin-bottom:16px; }
+.field label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:8px; }
+.field .req-mark{ color:var(--danger); }
+.field input[type=text], .field input[type=tel], .field input[type=date], .field textarea{
+  width:100%; border:1px solid var(--line); border-radius:12px; padding:12px 13px; font-size:14.5px;
+  font-family:inherit; background:var(--surface-alt); color:var(--ink); outline:none;
 }
+.field textarea{ resize:vertical; min-height:70px; }
+.field input:focus, .field textarea:focus{ border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px var(--primary-soft); }
+.chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.chip{ flex:1; min-width:70px; text-align:center; padding:11px 8px; border-radius:12px; border:1.5px solid var(--line); font-size:13px; font-weight:700; color:var(--ink-soft); cursor:pointer; background:var(--surface); }
+.chip.on{ border-color:var(--primary); background:var(--primary-soft); color:var(--primary); }
+.chip.gift-on{ border-color:var(--gift); background:var(--gift-soft); color:var(--gift); }
 
-function ReqListItem({ r, onOpenDetail }) {
-  const t = REQUEST_TYPES[r.type];
-  const isAs = r.type === "as";
-  return (
-    <div className="list-item" onClick={() => onOpenDetail(r.id, "request")}>
-      <div
-        className="li-ic"
-        style={{
-          background: isAs ? "var(--accent-soft)" : "var(--primary-soft)",
-          color: isAs ? "#9A6212" : "var(--primary)",
-        }}
-      >
-        <Icon name={t.icon} />
-      </div>
-      <div>
-        <div className="li-title">{r.reasonLabel}</div>
-        <div className="li-sub mono">
-          {r.id} · {t.label}
-        </div>
-      </div>
-      <div className="li-right">
-        <Badge status={r.status} />
-      </div>
-    </div>
-  );
-}
+.sheet-backdrop{ position:fixed; inset:0; background:rgba(14,20,40,.42); z-index:60; opacity:0; pointer-events:none; transition:opacity .22s ease; }
+.sheet-backdrop.show{ opacity:1; pointer-events:auto; }
+.sheet{ position:fixed; left:50%; transform:translateX(-50%) translateY(100%); bottom:0; width:100%; max-width:480px; z-index:61; background:var(--surface); border-radius:26px 26px 0 0; padding:10px 20px calc(22px + env(safe-area-inset-bottom,0px)); max-height:88vh; overflow-y:auto; transition:transform .28s cubic-bezier(.32,.72,0,1); box-shadow:0 -10px 40px rgba(16,26,51,.2); }
+.sheet.show{ transform:translateX(-50%) translateY(0); }
+.sheet .grabber{ width:38px;height:4px;background:var(--line); border-radius:3px; margin:6px auto 14px; }
+.sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.sheet-head h2{ font-size:18px; margin:0; }
+.sheet-head .h-sub{ font-size:12px; color:var(--ink-soft); font-weight:600; margin-top:2px; }
 
-function EmptyMini({ text }) {
-  return (
-    <div style={{ textAlign: "center", padding: "22px 0", color: "var(--ink-faint)", fontSize: 13 }}>
-      {text}
-    </div>
-  );
-}
+.toast{ position:fixed; left:50%; transform:translateX(-50%) translateY(20px); bottom:100px; width:calc(100% - 40px); max-width:440px; z-index:80; background:var(--frame); color:#fff; padding:13px 16px; border-radius:14px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:10px; opacity:0; pointer-events:none; transition:all .25s ease; }
+.toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
 
-/* ---------------- 홈 ---------------- */
-function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewReferral }) {
-  const openCount = data.requests.filter((r) => r.status !== "done").length;
-  const rewardCount = data.referrals.filter((r) => r.status === "rewarded").length;
-  return (
-    <>
-      <div className="topbar">
-        <div className="brand-top">
-          <img src="/logo.png" alt="TL" />
-        </div>
-        <div className="icon-btn" onClick={onOpenNotices}>
-          <Icon name="bell" />
-        </div>
-      </div>
-      <div className="view">
-        <div className="hero">
-          <div className="store">{data.store.code}</div>
-          <div className="name">{data.store.name} 사장님, 안녕하세요 👋</div>
-          <div className="stats">
-            <div className="stat">
-              <span>진행중 요청</span>
-              <b>{openCount}건</b>
-            </div>
-            <div className="stat">
-              <span>누적 지급 상품권</span>
-              <b>{rewardCount * 5}만원</b>
-            </div>
-          </div>
-        </div>
+.empty{ text-align:center; padding:50px 20px; color:var(--ink-soft); }
+.empty .ic{ width:56px;height:56px; margin:0 auto 14px; color:var(--ink-faint); }
 
-        <div className="gift-banner" onClick={() => onGoTab("referral")}>
-          <span className="eyebrow">고객소개 이벤트</span>
-          <div className="title">사장님, 아는 사장님 소개하고 상품권 받으세요</div>
-          <div className="desc">소개 1건당 신세계상품권 5만원 · 가맹 완료 시 지급</div>
-        </div>
+#login{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 30px; }
+.login-logo{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.login-logo img{ height:64px; }
+#login h1{ font-size:22px; margin:20px 0 6px; letter-spacing:-.02em; }
+#login p{ color:var(--ink-soft); font-size:14px; margin-bottom:28px; }
 
-        <div className="quick-row">
-          <div className="quick" onClick={() => onNewRequest("paper")}>
-            <div className="ic">
-              <Icon name="paper" />
-            </div>
-            <span>
-              용지
-              <br />
-              요청
-            </span>
-          </div>
-          <div className="quick" onClick={() => onNewRequest("as")}>
-            <div className="ic">
-              <Icon name="as" />
-            </div>
-            <span>
-              A/S
-              <br />
-              요청
-            </span>
-          </div>
-          <div className="quick" onClick={() => onNewRequest("sales")}>
-            <div className="ic">
-              <Icon name="sales" />
-            </div>
-            <span>
-              매출자료
-              <br />
-              요청
-            </span>
-          </div>
-          <div className="quick" onClick={onNewReferral}>
-            <div className="ic" style={{ background: "var(--gift-soft)", color: "var(--gift)" }}>
-              <Icon name="gift" />
-            </div>
-            <span>
-              고객
-              <br />
-              소개
-            </span>
-          </div>
-        </div>
+.apibar{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--ink-faint); font-weight:600; justify-content:center; margin-top:14px; }
+.apibar .led{ width:6px;height:6px;border-radius:50%; background:var(--success); }
+.apibar .led.pending{ background:var(--accent); }
 
-        <div className="section-title">
-          최근 요청
-          <span className="link" onClick={() => onGoTab("jobs")}>
-            전체보기
-          </span>
-        </div>
-        <div className="card">
-          {data.requests.length ? (
-            data.requests.slice(0, 3).map((r) => <ReqListItem key={r.id} r={r} onOpenDetail={onOpenDetail} />)
-          ) : (
-            <EmptyMini text="요청 내역이 없어요" />
-          )}
-        </div>
+.brand-top{ display:flex; align-items:center; gap:8px; }
+.brand-top img{ height:40px; }
 
-        <div className="section-title">
-          공지사항
-          <span className="link" onClick={onOpenNotices}>
-            전체보기
-          </span>
-        </div>
-        <div className="card">
-          {data.notices.map((n) => (
-            <div className="list-item" key={n.id} onClick={onOpenNotices}>
-              <div className="li-ic" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>
-                <Icon name="bell" />
-              </div>
-              <div>
-                <div className="li-title">{n.title}</div>
-                <div className="li-sub">{n.date}</div>
-              </div>
-              <div className="li-right">
-                <Icon name="chev" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
+.gift-hero{ background:linear-gradient(150deg, #7B2E86 0%, var(--gift) 55%, #F0729E 100%); border-radius:var(--radius-lg); padding:24px 20px; color:#fff; position:relative; overflow:hidden; }
+.gift-hero:before{ content:"🎁"; position:absolute; right:-6px; bottom:-24px; font-size:120px; opacity:.18; transform:rotate(-10deg); }
+.gift-hero .amount{ font-size:28px; font-weight:900; margin-top:6px; }
+.gift-hero .cap{ font-size:12.5px; opacity:.9; margin-top:8px; line-height:1.5; }
 
-/* ---------------- 요청함 ---------------- */
-function Jobs({ data, filter, setFilter, onOpenDetail, onNewRequest }) {
-  const filtered = data.requests.filter((r) => (filter === "all" ? true : r.type === filter));
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1>요청함</h1>
-          <div className="sub">용지 · A/S · 매출자료 요청 내역</div>
-        </div>
-        <div className="icon-btn" onClick={onNewRequest}>
-          <Icon name="plus" />
-        </div>
-      </div>
-      <div className="view">
-        <div className="seg">
-          {[
-            ["all", "전체"],
-            ["paper", "용지"],
-            ["as", "A/S"],
-            ["sales", "매출자료"],
-          ].map(([k, label]) => (
-            <button key={k} className={filter === k ? "active" : ""} onClick={() => setFilter(k)}>
-              {label}
-            </button>
-          ))}
-        </div>
-        {filtered.length ? (
-          filtered.map((r) => {
-            const steps = stepsFor(r.type);
-            return (
-              <div className="card req-card" key={r.id} onClick={() => onOpenDetail(r.id, "request")}>
-                <div className="req-top">
-                  <div>
-                    <Badge status={r.status} />
-                    <div className="req-id mono">
-                      {r.id} · {REQUEST_TYPES[r.type].label}
-                    </div>
-                  </div>
-                  <Icon name="chev" />
-                </div>
-                <div className="req-title">{r.reasonLabel}</div>
-                <div className="req-meta">{r.scheduledAt ? "방문예정 " + r.scheduledAt : "접수 " + r.createdAt}</div>
-                <MiniTrack steps={steps} status={r.status} />
-              </div>
-            );
-          })
-        ) : (
-          <div className="empty">
-            <div className="ic">
-              <Icon name="empty" />
-            </div>
-            <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>해당 내역이 없어요</div>
-            <div style={{ fontSize: 12.5 }}>위 + 버튼으로 새 요청을 등록해보세요</div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
+.steps-h{ display:flex; gap:10px; margin-top:16px; }
+.steps-h .s{ flex:1; text-align:center; }
+.steps-h .s .n{ width:26px;height:26px;border-radius:50%; background:var(--primary-soft); color:var(--primary); font-size:12px; font-weight:800; display:flex;align-items:center;justify-content:center; margin:0 auto 6px; }
+.steps-h .s p{ font-size:10.5px; color:var(--ink-soft); font-weight:600; margin:0; line-height:1.3; }
 
-/* ---------------- 요청 상세 ---------------- */
-function RequestDetail({ data, id, onBack }) {
-  const r = data.requests.find((x) => x.id === id);
-  if (!r) return null;
-  const steps = stepsFor(r.type);
-  return (
-    <>
-      <div className="topbar">
-        <div className="icon-btn" onClick={onBack}>
-          <Icon name="back" />
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div className="sub mono">{r.id}</div>
-        </div>
-      </div>
-      <div className="view">
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-soft)", fontWeight: 700 }}>{REQUEST_TYPES[r.type].label}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>{r.reasonLabel}</div>
-            </div>
-            <Badge status={r.status} />
-          </div>
-          <div className="kv-row" style={{ marginTop: 14 }}>
-            <span className="k">접수일시</span>
-            <span className="v">{r.createdAt}</span>
-          </div>
-          {r.type === "as" && (
-            <>
-              <div className="kv-row">
-                <span className="k">방문 예정</span>
-                <span className="v">{r.scheduledAt || "배정 대기"}</span>
-              </div>
-              <div className="kv-row">
-                <span className="k">담당 기사</span>
-                <span className="v">{r.technician || "배정 대기"}</span>
-              </div>
-            </>
-          )}
-          <div className="kv-row">
-            <span className="k">연락처</span>
-            <span className="v mono">{r.phone}</span>
-          </div>
-        </div>
+.divider-label{ display:flex; align-items:center; gap:10px; margin:20px 0 12px; }
+.divider-label span{ font-size:11.5px; font-weight:800; color:var(--ink-faint); letter-spacing:.03em; }
+.divider-label:before, .divider-label:after{ content:""; flex:1; height:1px; background:var(--line); }
 
-        <div className="section-title">진행 상황</div>
-        <div className="card">
-          <Track steps={steps} status={r.status} history={r.history} historyNote={r.historyNote} />
-        </div>
-
-        <div className="section-title">요청 내용</div>
-        <div className="card" style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--ink)" }}>
-          {r.note}
-        </div>
-
-        {r.status !== "done" && (
-          <button className="btn btn-ghost btn-block" style={{ marginTop: 20 }}>
-            문의하기 · 일정 변경 요청
-          </button>
-        )}
-      </div>
-    </>
-  );
-}
-
-/* ---------------- 고객소개 이벤트 ---------------- */
-function Referral({ data, onOpenDetail, onNewReferral }) {
-  const rewarded = data.referrals.filter((r) => r.status === "rewarded").length;
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1>고객소개 이벤트</h1>
-          <div className="sub">소개해주시고 상품권 받아가세요</div>
-        </div>
-      </div>
-      <div className="view">
-        <div className="gift-hero">
-          <span
-            style={{
-              background: "rgba(255,255,255,.22)",
-              padding: "3px 9px",
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 800,
-            }}
-          >
-            진행중 이벤트
-          </span>
-          <div className="amount">소개 1건당 50,000원</div>
-          <div className="cap">
-            신세계상품권 지급 · 소개하신 분이 가맹 완료되면 자동으로 지급 절차가 시작돼요.
-            <br />
-            지금까지 <b>{rewarded}건</b> 지급받으셨어요.
-          </div>
-        </div>
-
-        <div className="steps-h">
-          {[
-            ["1", "고객", "정보 등록"],
-            ["2", "가맹", "심사 진행"],
-            ["3", "가맹", "완료"],
-            ["4", "상품권", "지급"],
-          ].map(([n, l1, l2]) => (
-            <div className="s" key={n}>
-              <div className="n">{n}</div>
-              <p>
-                {l1}
-                <br />
-                {l2}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <button className="btn btn-gift btn-block" style={{ marginTop: 20 }} onClick={onNewReferral}>
-          <Icon name="gift" /> 고객 소개하기
-        </button>
-
-        <div className="section-title">내가 소개한 내역</div>
-        {data.referrals.length ? (
-          data.referrals.map((r) => (
-            <div className="card req-card" key={r.id} onClick={() => onOpenDetail(r.id, "referral")}>
-              <div className="req-top">
-                <div>
-                  <Badge status={r.status} />
-                  <div className="req-id mono">{r.id}</div>
-                </div>
-                <Icon name="chev" />
-              </div>
-              <div className="req-title">
-                {r.name} 사장님 · {r.bizType}
-              </div>
-              <div className="req-meta">{r.createdAt} 접수</div>
-              <MiniTrack steps={REFERRAL_STEP_DEFS} status={r.status} />
-            </div>
-          ))
-        ) : (
-          <div className="card">
-            <EmptyMini text="아직 소개한 고객이 없어요" />
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-function ReferralDetail({ data, id, onBack }) {
-  const r = data.referrals.find((x) => x.id === id);
-  if (!r) return null;
-  return (
-    <>
-      <div className="topbar">
-        <div className="icon-btn" onClick={onBack}>
-          <Icon name="back" />
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div className="sub mono">{r.id}</div>
-        </div>
-      </div>
-      <div className="view">
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-soft)", fontWeight: 700 }}>고객소개</div>
-              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>{r.name} 사장님</div>
-            </div>
-            <Badge status={r.status} />
-          </div>
-          <div className="kv-row" style={{ marginTop: 14 }}>
-            <span className="k">전화번호</span>
-            <span className="v mono">{r.phone}</span>
-          </div>
-          <div className="kv-row">
-            <span className="k">사업장주소</span>
-            <span className="v">{r.addr}</span>
-          </div>
-          <div className="kv-row">
-            <span className="k">사업장유형</span>
-            <span className="v">{r.bizType}</span>
-          </div>
-          <div className="kv-row">
-            <span className="k">사업자등록증</span>
-            <span className="v">{r.hasLicense}</span>
-          </div>
-        </div>
-
-        <div className="section-title">진행 상황</div>
-        <div className="card">
-          <Track steps={REFERRAL_STEP_DEFS} status={r.status} history={r.history} historyNote={{}} />
-        </div>
-        <div className="card" style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-          상품권은 가맹 완료 후 영업일 기준 5일 이내 등록하신 연락처로 지급됩니다.
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ---------------- 마이 ---------------- */
-function My({ data, onLogout, onToast }) {
-  const s = data.store;
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1>마이</h1>
-          <div className="sub">가맹점 정보 및 계정</div>
-        </div>
-      </div>
-      <div className="view">
-        <div className="card" style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              background: "var(--primary-soft)",
-              color: "var(--primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: 16,
-            }}
-          >
-            {s.name[0]}
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>{s.name}</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
-              {s.code} · {s.owner} 사장님
-            </div>
-          </div>
-        </div>
-        <div className="section-title">매장 정보</div>
-        <div className="card">
-          <div className="kv-row">
-            <span className="k">주소</span>
-            <span className="v">{s.addr}</span>
-          </div>
-          <div className="kv-row">
-            <span className="k">연락처</span>
-            <span className="v mono">{s.phone}</span>
-          </div>
-        </div>
-        <div className="section-title">시스템 연동</div>
-        <div className="card">
-          <div className="kv-row">
-            <span className="k">임직원 시스템</span>
-            <span className="v" style={{ color: "var(--accent)" }}>
-              연동 대기
-            </span>
-          </div>
-          <div className="kv-row">
-            <span className="k">대상 시스템</span>
-            <span className="v mono" style={{ fontSize: 11.5 }}>
-              tl-work-tool.vercel.app
-            </span>
-          </div>
-        </div>
-        <div className="section-title">지원</div>
-        <div className="card">
-          <div className="list-item" onClick={() => onToast("1:1 문의는 준비 중이에요")}>
-            <div className="li-title">1:1 문의하기</div>
-            <div className="li-right">
-              <Icon name="chev" />
-            </div>
-          </div>
-          <div className="list-item" onClick={() => onToast("고객센터: 1588-0000")}>
-            <div className="li-title">고객센터 안내</div>
-            <div className="li-right">
-              <Icon name="chev" />
-            </div>
-          </div>
-        </div>
-        <button className="btn btn-ghost btn-block" style={{ marginTop: 20 }} onClick={onLogout}>
-          로그아웃
-        </button>
-      </div>
-    </>
-  );
-}
-
-/* ---------------- 새 요청 시트 ---------------- */
-function NewRequestSheet({ defaultType, defaultPhone, onClose, onSubmit }) {
-  const [type, setType] = useState(defaultType);
-  const [note, setNote] = useState("");
-  const [phone, setPhone] = useState(defaultPhone);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit() {
-    setSubmitting(true);
-    await onSubmit({ type, note: note.trim() || REQUEST_TYPES[type].label + " 문의", phone: phone.trim() || defaultPhone });
-    setSubmitting(false);
-  }
-
-  return (
-    <>
-      <div className="grabber"></div>
-      <div className="sheet-head">
-        <div>
-          <h2>새 요청</h2>
-          <div className="h-sub">용지 · A/S · 매출자료 중 선택해주세요</div>
-        </div>
-        <div className="icon-btn" onClick={onClose}>
-          <Icon name="close" />
-        </div>
-      </div>
-      <div className="field">
-        <label>요청 유형</label>
-        <div className="chip-row">
-          {Object.entries(REQUEST_TYPES).map(([k, v]) => (
-            <div key={k} className={`chip ${type === k ? "on" : ""}`} onClick={() => setType(k)}>
-              {v.label}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="field">
-        <label>요청 내용</label>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="예: 카드단말기 감열지 10롤 부탁드립니다" />
-      </div>
-      <div className="field">
-        <label>연락처</label>
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-      </div>
-      <button className="btn btn-primary btn-block" disabled={submitting} onClick={handleSubmit}>
-        {submitting ? "접수 중…" : "요청하기"}
-      </button>
-    </>
-  );
-}
-
-/* ---------------- 고객소개 시트 ---------------- */
-function ReferralSheet({ onClose, onSubmit }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [addr, setAddr] = useState("");
-  const [bizType, setBizType] = useState(BIZ_TYPES[0]);
-  const [hasLicense, setHasLicense] = useState("유");
-  const [submitting, setSubmitting] = useState(false);
-  const [warn, setWarn] = useState("");
-
-  async function handleSubmit() {
-    if (!name.trim() || !phone.trim() || !addr.trim()) {
-      setWarn("성함, 전화번호, 사업장주소를 입력해주세요");
-      return;
-    }
-    setWarn("");
-    setSubmitting(true);
-    await onSubmit({ name: name.trim(), phone: phone.trim(), addr: addr.trim(), bizType, hasLicense });
-    setSubmitting(false);
-  }
-
-  return (
-    <>
-      <div className="grabber"></div>
-      <div className="sheet-head">
-        <div>
-          <h2>고객 소개하기</h2>
-          <div className="h-sub">소개 1건당 신세계상품권 5만원 지급</div>
-        </div>
-        <div className="icon-btn" onClick={onClose}>
-          <Icon name="close" />
-        </div>
-      </div>
-
-      <div className="divider-label">
-        <span>소개받는 고객 정보</span>
-      </div>
-
-      <div className="field">
-        <label>
-          성함 <span className="req-mark">*</span>
-        </label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 이서준" />
-      </div>
-      <div className="field">
-        <label>
-          전화번호 <span className="req-mark">*</span>
-        </label>
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000" />
-      </div>
-      <div className="field">
-        <label>
-          사업장주소 <span className="req-mark">*</span>
-        </label>
-        <input type="text" value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="예: 경기 군포시 산본로 12" />
-      </div>
-      <div className="field">
-        <label>
-          사업장유형 <span className="req-mark">*</span>
-        </label>
-        <div className="chip-row">
-          {BIZ_TYPES.map((b) => (
-            <div key={b} className={`chip ${bizType === b ? "on" : ""}`} onClick={() => setBizType(b)}>
-              {b}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="field">
-        <label>
-          사업자등록증 유무 <span className="req-mark">*</span>
-        </label>
-        <div className="chip-row">
-          <div className={`chip ${hasLicense === "유" ? "gift-on" : ""}`} onClick={() => setHasLicense("유")}>
-            있음
-          </div>
-          <div className={`chip ${hasLicense === "무" ? "gift-on" : ""}`} onClick={() => setHasLicense("무")}>
-            없음
-          </div>
-        </div>
-      </div>
-
-      {warn && <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 12, fontWeight: 600 }}>{warn}</div>}
-
-      <button className="btn btn-gift btn-block" style={{ marginTop: 6 }} disabled={submitting} onClick={handleSubmit}>
-        <Icon name="gift" /> {submitting ? "접수 중…" : "소개 접수하기"}
-      </button>
-      <div style={{ fontSize: 11, color: "var(--ink-faint)", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
-        등록하신 정보는 가맹 심사 목적으로만 사용되며,
-        <br />
-        가맹 완료 시 등록하신 사장님께 상품권이 지급됩니다.
-      </div>
-    </>
-  );
-}
+::selection{ background:var(--primary-soft); }
