@@ -1,38 +1,48 @@
 import { NextResponse } from "next/server";
-import { DB, nowStr } from "@/lib/store";
+import { getSupabaseAdmin } from "@/lib/supabaseServer";
+
+function nowStr() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 // POST /api/referrals
-// body: { name, phone, addr, bizType, hasLicense }
-// TODO(연동): 임직원 시스템의 "가맹점 접수현황" / 심사 플로우로 이어지도록 연결
-// 가맹 완료(status: 'done') 처리는 임직원 시스템 쪽 관리자 액션에서 발생 → 여기로 웹훅/폴링으로 상태 동기화 필요
-// 상품권(rewarded) 지급은 실제 지급 완료 후 임직원 시스템에서 상태 업데이트하는 것을 권장
+// body: { code, name, phone, addr, bizType, hasLicense }
+// TODO(연동): 임직원 시스템의 가맹 심사 플로우와 연결, 상태(reviewing/done/rewarded) 변경은
+// 임직원 시스템 쪽 관리자 화면에서 발생하도록 하는 것을 권장
 export async function POST(req) {
   const body = await req.json();
-  const { name, phone, addr, bizType, hasLicense } = body;
+  const { code, name, phone, addr, bizType, hasLicense } = body;
 
-  if (!name || !phone || !addr) {
-    return NextResponse.json({ error: "성함, 전화번호, 사업장주소는 필수입니다." }, { status: 400 });
+  if (!code || !name || !phone || !addr) {
+    return NextResponse.json({ error: "가맹점 코드, 성함, 전화번호, 사업장주소는 필수입니다." }, { status: 400 });
   }
 
   const id = "RF-" + Math.floor(1000 + Math.random() * 9000);
   const now = nowStr();
 
-  const referral = {
-    id,
-    name,
-    phone,
-    addr,
-    bizType: bizType || "기타 소매업",
-    hasLicense: hasLicense || "무",
-    status: "received",
-    createdAt: now,
-    history: { received: now, reviewing: null, done: null, rewarded: null },
-  };
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("referrals")
+    .insert({
+      id,
+      merchant_code: code,
+      name,
+      phone,
+      addr,
+      biz_type: bizType || "기타 소매업",
+      has_license: hasLicense || "무",
+      status: "received",
+      created_at_label: now,
+      history: { received: now, reviewing: null, done: null, rewarded: null },
+    })
+    .select()
+    .single();
 
-  DB.referrals.unshift(referral);
-  return NextResponse.json(referral, { status: 201 });
-}
+  if (error) {
+    return NextResponse.json({ error: "소개 접수 저장에 실패했어요." }, { status: 500 });
+  }
 
-export async function GET() {
-  return NextResponse.json(DB.referrals);
+  return NextResponse.json({ id: data.id }, { status: 201 });
 }

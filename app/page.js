@@ -12,8 +12,11 @@ import {
 
 export default function Page() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [loginStore, setLoginStore] = useState("산본커피");
+  const [loginCode, setLoginCode] = useState("MP-2291");
   const [loginPhone, setLoginPhone] = useState("010-4821-7730");
+  const [loginError, setLoginError] = useState("");
+  const [loginBusy, setLoginBusy] = useState(false);
+  const [merchantCode, setMerchantCode] = useState(null);
 
   const [data, setData] = useState(null); // { store, notices, requests, referrals }
   const [tab, setTab] = useState("home");
@@ -25,15 +28,16 @@ export default function Page() {
   const [jobsFilter, setJobsFilter] = useState("all");
 
   const loadData = useCallback(() => {
-    fetch("/api/bootstrap")
+    if (!merchantCode) return;
+    fetch(`/api/bootstrap?code=${encodeURIComponent(merchantCode)}`)
       .then((r) => r.json())
       .then(setData)
       .catch(() => showToast("데이터를 불러오지 못했어요"));
-  }, []);
+  }, [merchantCode]);
 
   useEffect(() => {
-    if (loggedIn) loadData();
-  }, [loggedIn, loadData]);
+    if (loggedIn && merchantCode) loadData();
+  }, [loggedIn, merchantCode, loadData]);
 
   function showToast(msg) {
     setToastMsg(msg);
@@ -41,14 +45,34 @@ export default function Page() {
     setTimeout(() => setToastShow(false), 2400);
   }
 
-  function doLogin() {
-    if (!loginStore.trim() || !loginPhone.trim()) return;
-    // TODO(연동): 실제로는 여기서 임직원 시스템 인증 API를 호출해 토큰을 받아야 합니다.
-    setLoggedIn(true);
+  async function doLogin() {
+    if (!loginCode.trim() || !loginPhone.trim()) return;
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: loginCode.trim(), phone: loginPhone.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setLoginError(json.error || "로그인에 실패했어요.");
+        setLoginBusy(false);
+        return;
+      }
+      setMerchantCode(json.merchant.code);
+      setLoggedIn(true);
+    } catch (e) {
+      setLoginError("서버에 연결하지 못했어요. Supabase 환경변수 설정을 확인해주세요.");
+    }
+    setLoginBusy(false);
   }
 
   function logout() {
     setLoggedIn(false);
+    setMerchantCode(null);
+    setData(null);
     setTab("home");
     setDetail(null);
   }
@@ -69,7 +93,7 @@ export default function Page() {
     const res = await fetch("/api/requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, reason, note, phone }),
+      body: JSON.stringify({ code: merchantCode, type, reason, note, phone }),
     });
     if (!res.ok) {
       showToast("요청 접수에 실패했어요");
@@ -86,7 +110,7 @@ export default function Page() {
     const res = await fetch("/api/referrals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ code: merchantCode, ...payload }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -109,12 +133,12 @@ export default function Page() {
           <h1>가맹점 파트너 로그인</h1>
           <p>가맹점 코드와 담당자 연락처로 접속하세요.</p>
           <div className="field">
-            <label>가맹점명 / 코드</label>
+            <label>가맹점 코드</label>
             <input
               type="text"
-              value={loginStore}
-              onChange={(e) => setLoginStore(e.target.value)}
-              placeholder="예: 산본커피 · MP-2291"
+              value={loginCode}
+              onChange={(e) => setLoginCode(e.target.value)}
+              placeholder="예: MP-2291"
             />
           </div>
           <div className="field">
@@ -126,11 +150,16 @@ export default function Page() {
               placeholder="010-0000-0000"
             />
           </div>
-          <button className="btn btn-primary btn-block" onClick={doLogin}>
-            로그인
+          {loginError && (
+            <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 14, fontWeight: 600 }}>
+              {loginError}
+            </div>
+          )}
+          <button className="btn btn-primary btn-block" onClick={doLogin} disabled={loginBusy}>
+            {loginBusy ? "확인 중…" : "로그인"}
           </button>
           <div className="apibar">
-            <span className="led pending"></span> 임직원 시스템(tl-work-tool) 연동 대기 · 현재 목업 데이터
+            <span className="led"></span> Supabase 데이터베이스 연동됨
           </div>
         </div>
       </div>

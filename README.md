@@ -12,11 +12,29 @@ npm run dev
 
 브라우저에서 http://localhost:3000 접속. 로그인 화면에 값이 미리 채워져 있어 바로 로그인 버튼만 눌러도 됩니다.
 
-## 지금 상태 (중요)
+## 지금 상태
 
-- 데이터는 `lib/store.js`의 **인메모리 목업**입니다. 서버를 재시작하면 초기화됩니다.
-- Vercel처럼 서버리스 환경에 그대로 배포하면 요청마다 인스턴스가 새로 뜰 수 있어 데이터가 유실되거나 사용자마다 다르게 보일 수 있습니다. **실제 서비스 전에는 반드시 Supabase 등 실제 DB로 교체**해야 합니다.
-- 로그인은 임시로 "가맹점명 + 연락처" 입력만으로 통과됩니다. 실제 인증 로직은 없습니다.
+**Supabase 데이터베이스와 연동되어 있습니다.** 가맹점 코드별로 데이터가 구분되고, 여러 가맹점이 동시에 로그인해도 서로 다른 데이터만 보여요.
+
+### Supabase 설정 방법 (처음 한 번만)
+
+1. `supabase_setup.sql` 파일 내용을 전체 복사
+2. Supabase 대시보드 → SQL Editor → New query → 붙여넣기 → Run
+3. 그러면 `merchants`(가맹점), `notices`(공지), `requests`(요청), `referrals`(고객소개) 테이블이 생기고 테스트 데이터가 들어갑니다
+4. 테스트 로그인 계정: 가맹점 코드 `MP-2291`, 연락처 `010-4821-7730`
+
+### 환경변수 설정 (필수, 이게 없으면 로그인이 안 돼요)
+
+1. `.env.local.example` 파일을 복사해서 `.env.local`로 이름 바꾸기
+2. Supabase 대시보드 → Settings → API 에서 값 확인해서 채워넣기:
+   - `NEXT_PUBLIC_SUPABASE_URL` — Project URL
+   - `SUPABASE_SERVICE_ROLE_KEY` — Secret key (⚠️ 절대 공개 저장소나 채팅에 붙여넣지 마세요)
+3. **Vercel에 배포한 경우**: Vercel 대시보드 → 프로젝트 → Settings → Environment Variables 에서 같은 이름으로 값 등록 → 다시 배포(Redeploy)해야 적용됩니다
+
+### 새 가맹점 추가하는 법 (지금은 수동)
+
+Supabase 대시보드 → Table Editor → `merchants` 테이블 → 우측 상단 `Insert` → `code`, `name`, `owner`, `phone`, `addr` 채우고 저장. 그러면 그 코드+연락처로 바로 로그인할 수 있어요.
+(나중에는 임직원 시스템에서 가맹점 등록하면 자동으로 여기도 추가되게 연동하는 게 이상적입니다.)
 
 ## 임직원 시스템(tl-work-tool.vercel.app) 연동을 위해 다음 단계에서 필요한 것
 
@@ -31,27 +49,32 @@ npm run dev
 
 ```
 app/
-  page.js              메인 화면 (로그인 + 홈/요청함/이벤트/마이 탭 전체)
-  layout.js            공통 레이아웃, 폰트 로드
+  page.js               메인 화면 (로그인 + 홈/요청함/이벤트/마이 탭 전체)
+  layout.js             공통 레이아웃, 폰트 로드
   globals.css           전체 스타일
   api/
-    bootstrap/route.js  로그인 후 초기 데이터 조회
-    requests/route.js   용지/A·S/매출자료 요청 생성·조회
-    referrals/route.js  고객소개 이벤트 접수·조회
+    login/route.js       가맹점 코드+연락처 로그인 검증
+    bootstrap/route.js   로그인 후 초기 데이터 조회
+    requests/route.js    용지/A·S/매출자료 요청 생성
+    referrals/route.js   고객소개 이벤트 접수
 components/
-  Icon.js               아이콘 모음
+  Icon.js                아이콘 모음
   Status.js              상태뱃지 / 진행 트랙 컴포넌트
 lib/
-  constants.js           요청유형, 진행단계 등 공용 상수
-  store.js                임시 인메모리 데이터 (→ 추후 DB로 교체)
+  constants.js            요청유형, 진행단계 등 공용 상수
+  supabaseServer.js        Supabase 서버 클라이언트 (API 라우트 전용)
 public/
-  logo.png                회사 로고
+  logo.png                 회사 로고
+supabase_setup.sql          Supabase 테이블 생성 스크립트 (최초 1회 실행)
+.env.local.example          환경변수 예시 파일
 ```
 
 ## 다음 단계 제안
 
-- [ ] tl-work-tool 스택 확인 후 DB 연동 방식 확정
-- [ ] `lib/store.js`를 실제 DB 클라이언트 호출로 교체
-- [ ] 가맹점 인증(로그인) 로직 실제 구현
-- [ ] 관리자(임직원) 쪽에서 가맹점 요청/소개 내역을 확인·상태 변경할 수 있는 화면과 연결
+- [x] Supabase 실제 DB 연동
+- [x] 가맹점 코드 기반 데이터 구분 (가맹점끼리 서로 다른 데이터만 보임)
+- [ ] tl-work-tool(임직원 시스템) 스택 확인 후 두 시스템 연동 방식 확정
+- [ ] 관리자(임직원) 쪽에서 가맹점 요청/소개 내역을 확인·상태 변경할 수 있는 화면 연결 (지금은 Supabase Table Editor에서 수동으로 상태를 바꿔야 해요)
+- [ ] 새 가맹점을 임직원 시스템에서 등록하면 자동으로 `merchants` 테이블에도 추가되게 연동
 - [ ] 소개 이벤트 상품권 지급 처리 방식 확정 (수동 지급 후 상태 변경 vs 자동 연동)
+- [ ] 정식 인증(비밀번호, 문자인증 등)으로 로그인 방식 강화
