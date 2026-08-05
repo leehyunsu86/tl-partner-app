@@ -179,7 +179,7 @@ body{
 
 #login{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 30px; }
 .login-logo{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-.login-logo img{ height:100px; }
+.login-logo img{ height:160px; }
 #login h1{ font-size:22px; margin:20px 0 6px; letter-spacing:-.02em; }
 #login p{ color:var(--ink-soft); font-size:14px; margin-bottom:28px; }
 
