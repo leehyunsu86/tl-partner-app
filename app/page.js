@@ -23,6 +23,7 @@ export default function Page() {
   const [detail, setDetail] = useState(null); // { id, kind }
   const [sheet, setSheet] = useState(null); // 'request' | 'referral' | null
   const [sheetDefaultType, setSheetDefaultType] = useState("paper");
+  const [sheetTypeLocked, setSheetTypeLocked] = useState(true);
   const [toastMsg, setToastMsg] = useState("");
   const [toastShow, setToastShow] = useState(false);
   const [jobsFilter, setJobsFilter] = useState("all");
@@ -195,6 +196,7 @@ export default function Page() {
               onGoTab={goTab}
               onNewRequest={(type) => {
                 setSheetDefaultType(type);
+                setSheetTypeLocked(true);
                 setSheet("request");
               }}
               onNewReferral={() => setSheet("referral")}
@@ -207,6 +209,7 @@ export default function Page() {
               onOpenDetail={openDetail}
               onNewRequest={() => {
                 setSheetDefaultType("paper");
+                setSheetTypeLocked(false);
                 setSheet("request");
               }}
             />
@@ -233,6 +236,7 @@ export default function Page() {
           {sheet === "request" && (
             <NewRequestSheet
               defaultType={sheetDefaultType}
+              lockType={sheetTypeLocked}
               defaultPhone={data.store.phone}
               onClose={() => setSheet(null)}
               onSubmit={submitRequest}
@@ -765,7 +769,7 @@ function My({ data, onLogout, onToast }) {
 }
 
 /* ---------------- 새 요청 시트 ---------------- */
-function NewRequestSheet({ defaultType, defaultPhone, onClose, onSubmit }) {
+function NewRequestSheet({ defaultType, lockType, defaultPhone, onClose, onSubmit }) {
   const [type, setType] = useState(defaultType);
   const [note, setNote] = useState("");
   const [phone, setPhone] = useState(defaultPhone);
@@ -785,23 +789,25 @@ function NewRequestSheet({ defaultType, defaultPhone, onClose, onSubmit }) {
       </div>
       <div className="sheet-head">
         <div>
-          <h2>새 요청</h2>
-          <div className="h-sub">용지 · A/S · 매출자료 중 선택해주세요</div>
+          <h2>{lockType ? REQUEST_TYPES[type].label : "새 요청"}</h2>
+          <div className="h-sub">{lockType ? "아래 내용을 작성해주세요" : "용지 · A/S · 매출자료 중 선택해주세요"}</div>
         </div>
         <div className="icon-btn" onClick={onClose}>
           <Icon name="close" />
         </div>
       </div>
-      <div className="field">
-        <label>요청 유형</label>
-        <div className="chip-row">
-          {Object.entries(REQUEST_TYPES).map(([k, v]) => (
-            <div key={k} className={`chip ${type === k ? "on" : ""}`} onClick={() => setType(k)}>
-              {v.label}
-            </div>
-          ))}
+      {!lockType && (
+        <div className="field">
+          <label>요청 유형</label>
+          <div className="chip-row">
+            {Object.entries(REQUEST_TYPES).map(([k, v]) => (
+              <div key={k} className={`chip ${type === k ? "on" : ""}`} onClick={() => setType(k)}>
+                {v.label}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className="field">
         <label>요청 내용</label>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="예: 카드단말기 감열지 10롤 부탁드립니다" />
