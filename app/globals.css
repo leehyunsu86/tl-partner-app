@@ -45,7 +45,7 @@ body{
 
 #app{ flex:1; display:flex; flex-direction:column; min-height:0; }
 .view{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 18px 100px; }
-.topbar{ padding:6px 4px 14px; flex:none; display:flex; align-items:center; justify-content:space-between; }
+.topbar{ padding:16px 4px; flex:none; display:flex; align-items:center; justify-content:space-between; position:relative; }
 .topbar h1{ font-size:20px; margin:0; letter-spacing:-.02em; }
 .topbar .sub{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
 .icon-btn{ width:38px;height:38px;border-radius:12px;background:var(--surface); border:1px solid var(--line); display:flex;align-items:center;justify-content:center; color:var(--ink-soft); cursor:pointer; flex:none; }
@@ -190,8 +190,8 @@ body{
 .apibar .led.pending{ background:var(--accent); }
 
 .topbar-spacer{ width:38px; flex:none; }
-.brand-top{ display:flex; align-items:center; justify-content:center; gap:8px; flex:1; }
-.brand-top img{ width:180px; height:auto; }
+.brand-top{ position:absolute; left:calc(50% - 6px); top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; }
+.brand-top img{ width:120px; height:auto; display:block; }
 
 .gift-hero{ background:linear-gradient(150deg, #7B2E86 0%, var(--gift) 55%, #F0729E 100%); border-radius:var(--radius-lg); padding:24px 20px; color:#fff; position:relative; overflow:hidden; }
 .gift-hero:before{ content:"🎁"; position:absolute; right:-6px; bottom:-24px; font-size:120px; opacity:.18; transform:rotate(-10deg); }
