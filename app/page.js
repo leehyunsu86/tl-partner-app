@@ -13,8 +13,8 @@ import {
 
 export default function Page() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [loginCode, setLoginCode] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [merchantCode, setMerchantCode] = useState(null);
@@ -48,14 +48,14 @@ export default function Page() {
   }
 
   async function doLogin() {
-    if (!loginCode.trim() || !loginPhone.trim()) return;
+    if (!loginPhone.trim() || !loginPassword.trim()) return;
     setLoginBusy(true);
     setLoginError("");
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: loginCode.trim(), phone: loginPhone.trim() }),
+        body: JSON.stringify({ phone: loginPhone.trim(), password: loginPassword.trim() }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -125,6 +125,22 @@ export default function Page() {
     loadData();
   }
 
+  async function submitPasswordChange({ currentPassword, newPassword }) {
+    const res = await fetch("/api/account/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: merchantCode, currentPassword, newPassword }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(json.error || "비밀번호 변경에 실패했어요");
+      return false;
+    }
+    setSheet(null);
+    showToast("비밀번호가 변경되었어요.");
+    return true;
+  }
+
   if (!loggedIn) {
     return (
       <div className="app-shell">
@@ -133,24 +149,24 @@ export default function Page() {
             <img src="/logo.png" alt="티엘정보통신" />
           </div>
           <h1>가맹점 파트너 로그인</h1>
-          <p>가맹점 코드와 비밀번호(휴대폰번호)로 접속하세요.</p>
+          <p>휴대폰번호(아이디)와 비밀번호로 접속하세요.</p>
           <div className="field">
-            <label>가맹점 코드</label>
+            <label>휴대폰번호 (아이디)</label>
             <input
-              type="text"
-              value={loginCode}
-              onChange={(e) => setLoginCode(e.target.value)}
-              placeholder="예: MP-2291"
+              type="tel"
+              value={loginPhone}
+              onChange={(e) => setLoginPhone(e.target.value)}
+              placeholder="예: 010-4821-7730"
             />
           </div>
           <div className="field">
-            <label>비밀번호 (휴대폰번호)</label>
+            <label>비밀번호</label>
             <input
               type="password"
               inputMode="numeric"
-              value={loginPhone}
-              onChange={(e) => setLoginPhone(e.target.value)}
-              placeholder="010-0000-0000"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="초기 비밀번호는 0000 이에요"
             />
           </div>
           {loginError && (
@@ -222,7 +238,7 @@ export default function Page() {
               onGoTab={goTab}
             />
           ) : (
-            <My data={data} onLogout={logout} onToast={showToast} />
+            <My data={data} onLogout={logout} onToast={showToast} onChangePassword={() => setSheet("password")} />
           )}
         </div>
 
@@ -246,6 +262,12 @@ export default function Page() {
           )}
           {sheet === "referral" && (
             <ReferralSheet onClose={() => setSheet(null)} onSubmit={submitReferral} />
+          )}
+          {sheet === "password" && (
+            <PasswordChangeSheet
+              onClose={() => setSheet(null)}
+              onSubmit={submitPasswordChange}
+            />
           )}
         </div>
 
@@ -689,7 +711,7 @@ function ReferralDetail({ data, id, onBack }) {
 }
 
 /* ---------------- 마이 ---------------- */
-function My({ data, onLogout, onToast }) {
+function My({ data, onLogout, onToast, onChangePassword }) {
   const s = data.store;
   return (
     <>
@@ -731,8 +753,17 @@ function My({ data, onLogout, onToast }) {
             <span className="v">{s.addr}</span>
           </div>
           <div className="kv-row">
-            <span className="k">연락처</span>
+            <span className="k">연락처 (아이디)</span>
             <span className="v mono">{s.phone}</span>
+          </div>
+        </div>
+        <div className="section-title">계정</div>
+        <div className="card">
+          <div className="list-item" onClick={onChangePassword}>
+            <div className="li-title">비밀번호 변경</div>
+            <div className="li-right">
+              <Icon name="chev" />
+            </div>
           </div>
         </div>
         <div className="section-title">시스템 연동</div>
@@ -923,6 +954,85 @@ function ReferralSheet({ onClose, onSubmit }) {
         <br />
         가맹 완료 시 등록하신 사장님께 상품권이 지급됩니다.
       </div>
+    </>
+  );
+}
+
+/* ---------------- 비밀번호 변경 시트 ---------------- */
+function PasswordChangeSheet({ onClose, onSubmit }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [warn, setWarn] = useState("");
+
+  async function handleSubmit() {
+    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      setWarn("모든 항목을 입력해주세요");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setWarn("새 비밀번호가 서로 일치하지 않아요");
+      return;
+    }
+    setWarn("");
+    setSubmitting(true);
+    await onSubmit({ currentPassword: currentPassword.trim(), newPassword: newPassword.trim() });
+    setSubmitting(false);
+  }
+
+  return (
+    <>
+      <div className="grabber"></div>
+      <div className="sheet-back" onClick={onClose}>
+        <Icon name="back" /> 뒤로가기
+      </div>
+      <div className="sheet-head">
+        <div>
+          <h2>비밀번호 변경</h2>
+          <div className="h-sub">현재 비밀번호를 확인 후 변경돼요</div>
+        </div>
+        <div className="icon-btn" onClick={onClose}>
+          <Icon name="close" />
+        </div>
+      </div>
+
+      <div className="field">
+        <label>현재 비밀번호</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="초기 비밀번호는 0000 이에요"
+        />
+      </div>
+      <div className="field">
+        <label>새 비밀번호</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="4자리 이상 입력해주세요"
+        />
+      </div>
+      <div className="field">
+        <label>새 비밀번호 확인</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="새 비밀번호를 한번 더 입력해주세요"
+        />
+      </div>
+
+      {warn && <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 12, fontWeight: 600 }}>{warn}</div>}
+
+      <button className="btn btn-primary btn-block" disabled={submitting} onClick={handleSubmit}>
+        {submitting ? "변경 중…" : "비밀번호 변경하기"}
+      </button>
     </>
   );
 }

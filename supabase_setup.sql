@@ -8,7 +8,8 @@ create table if not exists merchants (
   code text primary key,
   name text not null,
   owner text,
-  phone text,
+  phone text unique,
+  password text not null default '0000',
   addr text,
   created_at timestamptz default now()
 );
