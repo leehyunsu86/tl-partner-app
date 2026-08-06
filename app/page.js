@@ -218,6 +218,7 @@ export default function Page() {
               data={data}
               onOpenDetail={openDetail}
               onNewReferral={() => setSheet("referral")}
+              onGoTab={goTab}
             />
           ) : (
             <My data={data} onLogout={logout} onToast={showToast} />
@@ -550,12 +551,15 @@ function RequestDetail({ data, id, onBack }) {
 }
 
 /* ---------------- 고객소개 이벤트 ---------------- */
-function Referral({ data, onOpenDetail, onNewReferral }) {
+function Referral({ data, onOpenDetail, onNewReferral, onGoTab }) {
   const rewarded = data.referrals.filter((r) => r.status === "rewarded").length;
   return (
     <>
       <div className="topbar">
-        <div>
+        <div className="icon-btn" onClick={() => onGoTab("home")}>
+          <Icon name="back" />
+        </div>
+        <div style={{ flex: 1, marginLeft: 10 }}>
           <h1>고객소개 이벤트</h1>
           <div className="sub">소개해주시고 상품권 받아가세요</div>
         </div>
