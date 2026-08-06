@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import { Badge, MiniTrack, Track } from "@/components/Status";
 import {
   REQUEST_TYPES,
+  NOTE_PLACEHOLDERS,
   stepsFor,
   REFERRAL_STEP_DEFS,
   BIZ_TYPES,
@@ -814,7 +815,7 @@ function NewRequestSheet({ defaultType, lockType, defaultPhone, onClose, onSubmi
       )}
       <div className="field">
         <label>요청 내용</label>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="예: 카드단말기 감열지 10롤 부탁드립니다" />
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={NOTE_PLACEHOLDERS[type]} />
       </div>
       <div className="field">
         <label>연락처</label>
