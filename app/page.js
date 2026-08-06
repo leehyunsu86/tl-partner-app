@@ -868,7 +868,7 @@ function ReferralSheet({ onClose, onSubmit }) {
         <label>
           성함 <span className="req-mark">*</span>
         </label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 이서준" />
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 홍길동" />
       </div>
       <div className="field">
         <label>
@@ -880,7 +880,7 @@ function ReferralSheet({ onClose, onSubmit }) {
         <label>
           사업장주소 <span className="req-mark">*</span>
         </label>
-        <input type="text" value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="예: 경기 군포시 산본로 12" />
+        <input type="text" value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="예: 서울시 강남구 테헤란로 123" />
       </div>
       <div className="field">
         <label>
