@@ -35,7 +35,14 @@ export default function Page() {
     if (!merchantCode) return;
     fetch(`/api/bootstrap?code=${encodeURIComponent(merchantCode)}`)
       .then((r) => r.json())
-      .then(setData)
+      .then((json) => {
+        setData(json);
+        try {
+          window.localStorage.setItem("tl_cached_data", JSON.stringify(json));
+        } catch (e) {
+          // 무시
+        }
+      })
       .catch(() => showToast("데이터를 불러오지 못했어요"));
   }, [merchantCode]);
 
@@ -100,6 +107,14 @@ export default function Page() {
       if (sessionCode) {
         setMerchantCode(sessionCode);
         setLoggedIn(true);
+        const cached = window.localStorage.getItem("tl_cached_data");
+        if (cached) {
+          try {
+            setData(JSON.parse(cached));
+          } catch (e) {
+            // 캐시가 손상됐으면 무시하고 새로 불러오게 둠
+          }
+        }
       }
     } catch (e) {
       // localStorage 접근 불가 (프라이빗 모드 등) - 그냥 무시
@@ -157,6 +172,7 @@ export default function Page() {
     setDetail(null);
     try {
       window.localStorage.removeItem("tl_session_code");
+      window.localStorage.removeItem("tl_cached_data");
     } catch (e) {
       // 무시
     }
