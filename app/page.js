@@ -44,38 +44,46 @@ export default function Page() {
   }, [loggedIn, merchantCode, loadData]);
 
   // 뒤로가기(모바일 브라우저/제스처) 처리
-  // 화면 이동(탭 전환, 팝업 열기, 상세보기 진입)마다 브라우저 히스토리에 항목을 하나씩 남겨서,
-  // 뒤로가기를 누르면 그 항목들을 하나씩 되짚어가도록 만들어요. 맨 처음(홈, 팝업/상세 없음)까지
-  // 돌아온 상태에서 뒤로가기를 누르면, 바로 꺼지지 않고 "한번 더 누르면 종료" 토스트를 보여줘요.
+  // 화면 상태(탭/팝업/상세보기)는 평소엔 그냥 React 상태로만 다루고,
+  // 뒤로가기 버튼을 눌렀을 때만 별도로 감지해서 처리해요.
+  // 핵심: 페이지가 열리자마자 여분의 히스토리 항목을 미리 쌓아둬야
+  // 뒤로가기를 눌렀을 때 앱이 즉시 종료되지 않고 우리 코드가 먼저 반응할 수 있어요.
+  const navStateRef = useRef({ tab: "home", sheet: null, detail: null });
+  navStateRef.current = { tab, sheet, detail };
   const lastBackPressRef = useRef(0);
 
-  const navigate = useCallback((next) => {
-    setTab(next.tab);
-    setSheet(next.sheet || null);
-    setDetail(next.detail || null);
-    window.history.pushState(next, "");
-  }, []);
-
   useEffect(() => {
-    window.history.replaceState({ tab: "home", sheet: null, detail: null }, "");
+    // 여분의 히스토리 항목을 2개 쌓아서 뒤로가기가 바로 앱을 벗어나지 않게 함
+    window.history.pushState({ appGuard: true }, "");
+    window.history.pushState({ appGuard: true }, "");
 
-    function onPopState(e) {
-      const state = e.state;
-      if (state && typeof state === "object" && "tab" in state) {
-        setTab(state.tab);
-        setSheet(state.sheet || null);
-        setDetail(state.detail || null);
+    function onPopState() {
+      const { tab, sheet, detail } = navStateRef.current;
+      if (sheet) {
+        setSheet(null);
+        window.history.pushState({ appGuard: true }, "");
         return;
       }
-      // 우리가 기록한 화면 상태를 벗어났다 = 앱을 나가려는 시도
+      if (detail) {
+        setDetail(null);
+        window.history.pushState({ appGuard: true }, "");
+        return;
+      }
+      if (tab !== "home") {
+        setTab("home");
+        window.history.pushState({ appGuard: true }, "");
+        return;
+      }
+      // 홈 화면(맨 처음 상태)에서 뒤로가기 -> 종료 확인
       const now = Date.now();
       if (now - lastBackPressRef.current < 2200) {
-        // 2.2초 안에 다시 뒤로가기 -> 진짜 종료 (그대로 두면 브라우저가 실제로 나가요)
+        // 2.2초 안에 다시 뒤로가기 -> 진짜 종료되도록 한번 더 뒤로 이동시켜요
+        window.history.back();
         return;
       }
       lastBackPressRef.current = now;
       showToast("뒤로가기를 한번 더 누르면 종료돼요");
-      window.history.pushState({ tab: "home", sheet: null, detail: null }, "");
+      window.history.pushState({ appGuard: true }, "");
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -139,26 +147,26 @@ export default function Page() {
     setTab("home");
     setSheet(null);
     setDetail(null);
-    window.history.replaceState({ tab: "home", sheet: null, detail: null }, "");
   }
 
   function openDetail(id, kind) {
-    navigate({ tab, sheet: null, detail: { id, kind } });
+    setDetail({ id, kind });
   }
   function closeDetail() {
-    window.history.back();
+    setDetail(null);
   }
   function goTab(t) {
-    navigate({ tab: t, sheet: null, detail: null });
+    setTab(t);
+    setSheet(null);
+    setDetail(null);
   }
-  function goBack() {
-    window.history.back();
+  function closeSheet() {
+    setSheet(null);
   }
   function completeTo(next) {
     setTab(next.tab);
     setSheet(next.sheet || null);
     setDetail(next.detail || null);
-    window.history.replaceState(next, "");
   }
 
   async function submitRequest({ type, note, phone }) {
@@ -290,9 +298,9 @@ export default function Page() {
               onNewRequest={(type) => {
                 setSheetDefaultType(type);
                 setSheetTypeLocked(true);
-                navigate({ tab, sheet: "request", detail: null });
+                setSheet("request");
               }}
-              onNewReferral={() => navigate({ tab, sheet: "referral", detail: null })}
+              onNewReferral={() => setSheet("referral")}
             />
           ) : tab === "jobs" ? (
             <Jobs
@@ -303,18 +311,18 @@ export default function Page() {
               onNewRequest={() => {
                 setSheetDefaultType("paper");
                 setSheetTypeLocked(false);
-                navigate({ tab, sheet: "request", detail: null });
+                setSheet("request");
               }}
             />
           ) : tab === "referral" ? (
             <Referral
               data={data}
               onOpenDetail={openDetail}
-              onNewReferral={() => navigate({ tab, sheet: "referral", detail: null })}
+              onNewReferral={() => setSheet("referral")}
               onGoTab={goTab}
             />
           ) : (
-            <My data={data} onLogout={logout} onToast={showToast} onChangePassword={() => navigate({ tab, sheet: "password", detail: null })} />
+            <My data={data} onLogout={logout} onToast={showToast} onChangePassword={() => setSheet("password")} />
           )}
         </div>
 
@@ -325,23 +333,23 @@ export default function Page() {
           <TabButton active={tab === "my" && !detail} onClick={() => goTab("my")} label="마이" iconPath="M12 8a4 4 0 100-8 4 4 0 000 8zM4 21c1.6-4 5-6 8-6s6.4 2 8 6" />
         </div>
 
-        <div className={`sheet-backdrop ${sheet ? "show" : ""}`} onClick={goBack}></div>
+        <div className={`sheet-backdrop ${sheet ? "show" : ""}`} onClick={closeSheet}></div>
         <div className={`sheet ${sheet ? "show" : ""}`}>
           {sheet === "request" && (
             <NewRequestSheet
               defaultType={sheetDefaultType}
               lockType={sheetTypeLocked}
               defaultPhone={data.store.phone}
-              onClose={goBack}
+              onClose={closeSheet}
               onSubmit={submitRequest}
             />
           )}
           {sheet === "referral" && (
-            <ReferralSheet onClose={goBack} onSubmit={submitReferral} />
+            <ReferralSheet onClose={closeSheet} onSubmit={submitReferral} />
           )}
           {sheet === "password" && (
             <PasswordChangeSheet
-              onClose={goBack}
+              onClose={closeSheet}
               onSubmit={submitPasswordChange}
             />
           )}
