@@ -51,13 +51,21 @@ export default function Page() {
   }, [loggedIn, merchantCode, loadData]);
 
   // 뒤로가기(모바일 브라우저/제스처) 처리
-  // 화면 상태(탭/팝업/상세보기)는 평소엔 그냥 React 상태로만 다루고,
-  // 뒤로가기 버튼을 눌렀을 때만 별도로 감지해서 처리해요.
-  // 핵심: 페이지가 열리자마자 여분의 히스토리 항목을 미리 쌓아둬야
-  // 뒤로가기를 눌렀을 때 앱이 즉시 종료되지 않고 우리 코드가 먼저 반응할 수 있어요.
+  // - 홈이 아닌 곳(팝업, 상세보기, 다른 탭)에서 뒤로가기 -> 바로 홈 화면으로
+  // - 홈 화면에서 뒤로가기 -> "종료하시겠습니까?" 확인창 표시
   const navStateRef = useRef({ tab: "home", sheet: null, detail: null });
   navStateRef.current = { tab, sheet, detail };
-  const lastBackPressRef = useRef(0);
+  const allowExitRef = useRef(false);
+  const [exitConfirm, setExitConfirm] = useState(false);
+
+  function confirmExit() {
+    allowExitRef.current = true;
+    window.history.go(-10);
+  }
+  function cancelExit() {
+    setExitConfirm(false);
+    window.history.pushState({ appGuard: true }, "");
+  }
 
   useEffect(() => {
     // 여분의 히스토리 항목을 2개 쌓아서 뒤로가기가 바로 앱을 벗어나지 않게 함
@@ -65,31 +73,22 @@ export default function Page() {
     window.history.pushState({ appGuard: true }, "");
 
     function onPopState() {
+      if (allowExitRef.current) return; // 종료 확정 - 더 이상 막지 않음
+
       const { tab, sheet, detail } = navStateRef.current;
-      if (sheet) {
+      const atHome = tab === "home" && !sheet && !detail;
+
+      if (!atHome) {
+        // 홈이 아닌 곳 -> 어디서든 바로 홈으로
+        setTab("home");
         setSheet(null);
-        window.history.pushState({ appGuard: true }, "");
-        return;
-      }
-      if (detail) {
         setDetail(null);
         window.history.pushState({ appGuard: true }, "");
         return;
       }
-      if (tab !== "home") {
-        setTab("home");
-        window.history.pushState({ appGuard: true }, "");
-        return;
-      }
-      // 홈 화면(맨 처음 상태)에서 뒤로가기 -> 종료 확인
-      const now = Date.now();
-      if (now - lastBackPressRef.current < 2200) {
-        // 2.2초 안에 다시 뒤로가기 -> 진짜 종료되도록 한번 더 뒤로 이동시켜요
-        window.history.back();
-        return;
-      }
-      lastBackPressRef.current = now;
-      showToast("뒤로가기를 한번 더 누르면 종료돼요");
+
+      // 홈 화면 -> 종료 확인창 표시
+      setExitConfirm(true);
       window.history.pushState({ appGuard: true }, "");
     }
     window.addEventListener("popstate", onPopState);
@@ -247,6 +246,22 @@ export default function Page() {
     return true;
   }
 
+  const exitModal = exitConfirm ? (
+    <div className="exit-modal-backdrop" onClick={cancelExit}>
+      <div className="exit-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="exit-modal-title">앱을 종료하시겠습니까?</div>
+        <div className="exit-modal-actions">
+          <button className="btn btn-ghost" onClick={cancelExit}>
+            취소
+          </button>
+          <button className="btn btn-primary" onClick={confirmExit}>
+            종료
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   if (!loggedIn) {
     return (
       <div className="app-shell">
@@ -294,6 +309,7 @@ export default function Page() {
             <span className="led"></span> Supabase 데이터베이스 연동됨
           </div>
         </div>
+        {exitModal}
       </div>
     );
   }
@@ -304,6 +320,7 @@ export default function Page() {
         <div className="view" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           불러오는 중…
         </div>
+        {exitModal}
       </div>
     );
   }
@@ -386,6 +403,7 @@ export default function Page() {
 
         <div className={`toast ${toastShow ? "show" : ""}`}>{toastMsg}</div>
       </div>
+      {exitModal}
     </div>
   );
 }

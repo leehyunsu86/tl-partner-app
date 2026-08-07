@@ -182,6 +182,12 @@ body{
 .toast{ position:fixed; left:50%; transform:translateX(-50%) translateY(20px); bottom:100px; width:calc(100% - 40px); max-width:440px; z-index:80; background:var(--frame); color:#fff; padding:14px 17px; border-radius:14px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:10px; opacity:0; pointer-events:none; transition:all .25s ease; }
 .toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
 
+.exit-modal-backdrop{ position:fixed; inset:0; background:rgba(25,31,40,.5); z-index:90; display:flex; align-items:center; justify-content:center; padding:24px; }
+.exit-modal{ background:var(--surface); border-radius:20px; padding:26px 22px 20px; width:100%; max-width:300px; box-shadow:var(--shadow-pop); }
+.exit-modal-title{ font-size:16.5px; font-weight:800; text-align:center; letter-spacing:-.02em; margin-bottom:20px; }
+.exit-modal-actions{ display:flex; gap:8px; }
+.exit-modal-actions .btn{ flex:1; padding:12px; font-size:14px; }
+
 .empty{ text-align:center; padding:50px 20px; color:var(--ink-soft); }
 .empty .ic{ width:56px;height:56px; margin:0 auto 14px; color:var(--ink-faint); }
 
