@@ -17,34 +17,35 @@ export default function PosIllustration({ variant = "dark" }) {
     );
   }
   return (
-    <svg width="132" height="112" viewBox="0 0 132 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="92" height="128" viewBox="0 0 108 150" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* 바닥 그림자 */}
-      <ellipse cx="66" cy="103" rx="46" ry="6" fill="#191F28" opacity="0.06" />
+      <ellipse cx="54" cy="144" rx="34" ry="5" fill="#191F28" opacity="0.07" />
 
-      {/* 단말기 받침대 */}
-      <path d="M30 96C30 93 32 91 35 91H97C100 91 102 93 102 96V97C102 99 100 101 97 101H35C32 101 30 99 30 97V96Z" fill="#DCE1E6" />
-      <path d="M40 91L46 60H86L92 91H40Z" fill="#EDF0F2" />
+      {/* 받침대 */}
+      <path d="M20 138C20 135 22 133 25 133H83C86 133 88 135 88 138C88 141 84 143 76 143H32C24 143 20 141 20 138Z" fill="#DCE1E6" />
 
-      {/* 단말기 본체 (기울어진 화면) */}
-      <g transform="rotate(-3 66 46)">
-        <rect x="30" y="10" width="72" height="78" rx="14" fill="#191F28" />
-        <rect x="36" y="16" width="60" height="52" rx="7" fill="#3182F6" />
-        <rect x="41" y="22" width="34" height="5" rx="2.5" fill="#FFFFFF" opacity="0.92" />
-        <rect x="41" y="33" width="50" height="4" rx="2" fill="#FFFFFF" opacity="0.55" />
-        <rect x="41" y="41" width="42" height="4" rx="2" fill="#FFFFFF" opacity="0.4" />
-        <rect x="41" y="53" width="26" height="10" rx="5" fill="#FFFFFF" />
-        <circle cx="66" cy="77" r="3.4" fill="#3A4552" />
+      {/* 본체 (세로형 키오스크) */}
+      <rect x="16" y="6" width="76" height="130" rx="18" fill="#191F28" />
+      <rect x="22" y="12" width="64" height="82" rx="9" fill="#3182F6" />
+      <rect x="28" y="19" width="28" height="6" rx="3" fill="#FFFFFF" opacity="0.92" />
+      <rect x="28" y="32" width="52" height="4" rx="2" fill="#FFFFFF" opacity="0.5" />
+      <rect x="28" y="41" width="44" height="4" rx="2" fill="#FFFFFF" opacity="0.36" />
+      <rect x="28" y="72" width="52" height="16" rx="8" fill="#FFFFFF" opacity="0.95" />
+      <rect x="34" y="78" width="24" height="4" rx="2" fill="#3182F6" />
+
+      {/* 카메라 / 프린터 / 결제 모듈 */}
+      <rect x="28" y="100" width="16" height="16" rx="4" fill="#2A3441" stroke="#4A5666" strokeWidth="1.2" />
+      <circle cx="36" cy="108" r="3.6" fill="#5B6B7E" />
+      <rect x="50" y="102" width="30" height="4" rx="2" fill="#4A5666" />
+      <rect x="28" y="122" width="52" height="3" rx="1.5" fill="#3A4552" />
+
+      {/* 결제 카드 */}
+      <g transform="rotate(-10 96 90)">
+        <rect x="83" y="80" width="30" height="19" rx="3.5" fill="#FFFFFF" stroke="#DCE1E6" strokeWidth="1.4" />
+        <rect x="87" y="84" width="9" height="6.5" rx="1.3" fill="#F5A623" />
+        <rect x="87" y="93" width="18" height="2.2" rx="1.1" fill="#DCE1E6" />
       </g>
-
-      {/* 카드 (탭 결제) */}
-      <g transform="rotate(12 20 40)">
-        <rect x="0" y="30" width="34" height="21" rx="4" fill="#FFFFFF" stroke="#DCE1E6" strokeWidth="1.5" />
-        <rect x="4" y="35" width="10" height="7" rx="1.5" fill="#F5A623" />
-        <rect x="4" y="45" width="20" height="2.4" rx="1.2" fill="#DCE1E6" />
-      </g>
-      {/* 신호 웨이브 */}
-      <path d="M28 32C25 29 25 24 28 21" stroke="#3182F6" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
-      <path d="M32 35C27 30 27 21 32 16" stroke="#3182F6" strokeWidth="2" strokeLinecap="round" opacity="0.35" />
+      <path d="M80 78C77 74 77 68 80 64" stroke="#3182F6" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
     </svg>
   );
 }
