@@ -32,14 +32,24 @@ export default function Page() {
   const [toastShow, setToastShow] = useState(false);
   const [jobsFilter, setJobsFilter] = useState("all");
 
+  function normalizeData(json) {
+    return {
+      store: json?.store || { name: "", code: "", owner: "", addr: "", phone: "" },
+      requests: Array.isArray(json?.requests) ? json.requests : [],
+      referrals: Array.isArray(json?.referrals) ? json.referrals : [],
+      notices: Array.isArray(json?.notices) ? json.notices : [],
+    };
+  }
+
   const loadData = useCallback(() => {
     if (!merchantCode) return;
     fetch(`/api/bootstrap?code=${encodeURIComponent(merchantCode)}`)
       .then((r) => r.json())
       .then((json) => {
-        setData(json);
+        const normalized = normalizeData(json);
+        setData(normalized);
         try {
-          window.localStorage.setItem("tl_cached_data", JSON.stringify(json));
+          window.localStorage.setItem("tl_cached_data", JSON.stringify(normalized));
         } catch (e) {
           // 무시
         }
@@ -137,9 +147,15 @@ export default function Page() {
         const cached = window.localStorage.getItem("tl_cached_data");
         if (cached) {
           try {
-            setData(JSON.parse(cached));
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.store) {
+              setData(normalizeData(parsed));
+            } else {
+              window.localStorage.removeItem("tl_cached_data");
+            }
           } catch (e) {
             // 캐시가 손상됐으면 무시하고 새로 불러오게 둠
+            window.localStorage.removeItem("tl_cached_data");
           }
         }
       }
