@@ -15,6 +15,7 @@ export default function Page() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [rememberId, setRememberId] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [merchantCode, setMerchantCode] = useState(null);
@@ -41,10 +42,13 @@ export default function Page() {
     if (loggedIn && merchantCode) loadData();
   }, [loggedIn, merchantCode, loadData]);
 
-  // 뒤로가기(모바일 브라우저/제스처) 눌렀을 때 바로 꺼지지 않고 확인창을 띄워요.
-  // 팝업/상세화면/다른 탭이 열려있으면 그것부터 닫고, 홈 화면에서 뒤로가기를 누르면 종료 여부를 물어봐요.
+  // 뒤로가기(모바일 브라우저/제스처) 눌렀을 때 바로 꺼지지 않게 해요.
+  // 팝업/상세화면/다른 탭이 열려있으면 그것부터 닫고, 홈 화면에서 뒤로가기를 두 번 눌러야 종료돼요.
+  // (모바일 브라우저에서 confirm() 팝업이 뒤로가기 이벤트와 함께 쓰이면 불안정하게 무시되는 경우가 있어
+  //  카카오톡 등에서 흔히 쓰는 "한 번 더 누르면 종료" 토스트 방식을 사용해요)
   const navStateRef = useRef({});
   navStateRef.current = { tab, sheet, detail };
+  const lastBackPressRef = useRef(0);
 
   useEffect(() => {
     window.history.pushState({ appGuard: true }, "");
@@ -65,15 +69,29 @@ export default function Page() {
         window.history.pushState({ appGuard: true }, "");
         return;
       }
-      const wantsExit = window.confirm("앱을 종료하시겠습니까?");
-      if (wantsExit) {
-        window.history.back();
-      } else {
-        window.history.pushState({ appGuard: true }, "");
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2200) {
+        // 2.2초 안에 다시 뒤로가기 -> 진짜 종료
+        return;
       }
+      lastBackPressRef.current = now;
+      showToast("뒤로가기를 한번 더 누르면 종료돼요");
+      window.history.pushState({ appGuard: true }, "");
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("tl_saved_phone");
+      if (saved) {
+        setLoginPhone(saved);
+        setRememberId(true);
+      }
+    } catch (e) {
+      // localStorage 접근 불가 (프라이빗 모드 등) - 그냥 무시
+    }
   }, []);
 
   function showToast(msg) {
@@ -97,6 +115,15 @@ export default function Page() {
         setLoginError(json.error || "로그인에 실패했어요.");
         setLoginBusy(false);
         return;
+      }
+      try {
+        if (rememberId) {
+          window.localStorage.setItem("tl_saved_phone", loginPhone.trim());
+        } else {
+          window.localStorage.removeItem("tl_saved_phone");
+        }
+      } catch (e) {
+        // localStorage 접근 불가 - 그냥 무시
       }
       setMerchantCode(json.merchant.code);
       setLoggedIn(true);
@@ -191,7 +218,7 @@ export default function Page() {
               type="tel"
               value={loginPhone}
               onChange={(e) => setLoginPhone(e.target.value)}
-              placeholder="예: 010-4821-7730"
+              placeholder="예: 01048217730 (- 없이 입력)"
             />
           </div>
           <div className="field">
@@ -204,6 +231,10 @@ export default function Page() {
               placeholder="초기 비밀번호는 0000 이에요"
             />
           </div>
+          <label className="remember-row">
+            <input type="checkbox" checked={rememberId} onChange={(e) => setRememberId(e.target.checked)} />
+            아이디 저장
+          </label>
           {loginError && (
             <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 14, fontWeight: 600 }}>
               {loginError}

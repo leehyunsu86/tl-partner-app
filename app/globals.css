@@ -188,6 +188,8 @@ body{
 .apibar{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--ink-faint); font-weight:600; justify-content:center; margin-top:14px; }
 .apibar .led{ width:6px;height:6px;border-radius:50%; background:var(--success); }
 .apibar .led.pending{ background:var(--accent); }
+.remember-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft); font-weight:600; margin:-6px 0 16px; cursor:pointer; user-select:none; }
+.remember-row input[type=checkbox]{ width:17px; height:17px; accent-color:var(--primary); cursor:pointer; }
 
 .topbar-spacer{ width:38px; flex:none; }
 .brand-top{ position:absolute; left:calc(50% - 6px); top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; }
