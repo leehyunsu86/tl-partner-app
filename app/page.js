@@ -61,12 +61,34 @@ export default function Page() {
 
   function confirmExit() {
     allowExitRef.current = true;
-    window.history.go(-10);
+    try {
+      window.sessionStorage.removeItem("tl_exit_pending");
+    } catch (e) {
+      // 무시
+    }
+    window.history.go(-15);
   }
   function cancelExit() {
     setExitConfirm(false);
+    try {
+      window.sessionStorage.removeItem("tl_exit_pending");
+    } catch (e) {
+      // 무시
+    }
     window.history.pushState({ appGuard: true }, "");
   }
+
+  // 화면이 뒤로가기로 인해 다시 그려지더라도(리마운트) 종료 확인창이 사라지지 않도록,
+  // 상태를 sessionStorage에도 함께 기록해요.
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem("tl_exit_pending") === "1") {
+        setExitConfirm(true);
+      }
+    } catch (e) {
+      // 무시
+    }
+  }, []);
 
   useEffect(() => {
     // 여분의 히스토리 항목을 2개 쌓아서 뒤로가기가 바로 앱을 벗어나지 않게 함
@@ -88,8 +110,13 @@ export default function Page() {
         return;
       }
 
-      // 홈 화면 -> 종료 확인창 표시
+      // 홈 화면 -> 종료 확인창 표시 (리마운트돼도 유지되도록 저장까지 함께)
       setExitConfirm(true);
+      try {
+        window.sessionStorage.setItem("tl_exit_pending", "1");
+      } catch (e) {
+        // 무시
+      }
       window.history.pushState({ appGuard: true }, "");
     }
     window.addEventListener("popstate", onPopState);
