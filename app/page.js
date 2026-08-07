@@ -18,6 +18,7 @@ export default function Page() {
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [rememberId, setRememberId] = useState(false);
+  const [autoLogin, setAutoLogin] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [merchantCode, setMerchantCode] = useState(null);
@@ -140,22 +141,28 @@ export default function Page() {
         setLoginPhone(saved);
         setRememberId(true);
       }
-      const sessionCode = window.localStorage.getItem("tl_session_code");
-      if (sessionCode) {
-        setMerchantCode(sessionCode);
-        setLoggedIn(true);
-        const cached = window.localStorage.getItem("tl_cached_data");
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed && parsed.store) {
-              setData(normalizeData(parsed));
-            } else {
+      const autoLoginPref = window.localStorage.getItem("tl_auto_login") === "1";
+      setAutoLogin(autoLoginPref);
+
+      // 자동로그인을 체크해두신 경우에만 로그인 화면을 건너뛰고 바로 들어가요.
+      if (autoLoginPref) {
+        const sessionCode = window.localStorage.getItem("tl_session_code");
+        if (sessionCode) {
+          setMerchantCode(sessionCode);
+          setLoggedIn(true);
+          const cached = window.localStorage.getItem("tl_cached_data");
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (parsed && parsed.store) {
+                setData(normalizeData(parsed));
+              } else {
+                window.localStorage.removeItem("tl_cached_data");
+              }
+            } catch (e) {
+              // 캐시가 손상됐으면 무시하고 새로 불러오게 둠
               window.localStorage.removeItem("tl_cached_data");
             }
-          } catch (e) {
-            // 캐시가 손상됐으면 무시하고 새로 불러오게 둠
-            window.localStorage.removeItem("tl_cached_data");
           }
         }
       }
@@ -192,9 +199,15 @@ export default function Page() {
         } else {
           window.localStorage.removeItem("tl_saved_phone");
         }
-        // 로그인 세션을 저장해둬서, 뒤로가기 등으로 화면이 다시 그려져도
-        // 로그인 화면이 다시 뜨지 않고 바로 복구되게 해요.
-        window.localStorage.setItem("tl_session_code", json.merchant.code);
+        if (autoLogin) {
+          // 자동로그인 체크 시에만 세션을 저장해서, 다음에 새로고침/재접속해도 바로 로그인된 상태로 시작해요.
+          window.localStorage.setItem("tl_auto_login", "1");
+          window.localStorage.setItem("tl_session_code", json.merchant.code);
+        } else {
+          window.localStorage.removeItem("tl_auto_login");
+          window.localStorage.removeItem("tl_session_code");
+          window.localStorage.removeItem("tl_cached_data");
+        }
       } catch (e) {
         // localStorage 접근 불가 - 그냥 무시
       }
@@ -216,6 +229,7 @@ export default function Page() {
     try {
       window.localStorage.removeItem("tl_session_code");
       window.localStorage.removeItem("tl_cached_data");
+      window.localStorage.removeItem("tl_auto_login");
     } catch (e) {
       // 무시
     }
@@ -337,10 +351,16 @@ export default function Page() {
               placeholder="초기 비밀번호는 0000 이에요"
             />
           </div>
-          <label className="remember-row">
-            <input type="checkbox" checked={rememberId} onChange={(e) => setRememberId(e.target.checked)} />
-            아이디 저장
-          </label>
+          <div className="remember-group">
+            <label className="remember-row">
+              <input type="checkbox" checked={rememberId} onChange={(e) => setRememberId(e.target.checked)} />
+              아이디 저장
+            </label>
+            <label className="remember-row">
+              <input type="checkbox" checked={autoLogin} onChange={(e) => setAutoLogin(e.target.checked)} />
+              자동로그인
+            </label>
+          </div>
           {loginError && (
             <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 14, fontWeight: 600 }}>
               {loginError}
