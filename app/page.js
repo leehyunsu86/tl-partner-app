@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Icon from "@/components/Icon";
+import PosIllustration from "@/components/PosIllustration";
 import { Badge, MiniTrack, Track } from "@/components/Status";
 import {
   REQUEST_TYPES,
@@ -215,6 +216,9 @@ export default function Page() {
         <div id="login">
           <div className="login-logo">
             <img src="/logo.png" alt="티엘정보통신" />
+          </div>
+          <div className="login-illust">
+            <PosIllustration />
           </div>
           <h1>가맹점 파트너 로그인</h1>
           <p>휴대폰번호(아이디)와 비밀번호로 접속하세요.</p>
