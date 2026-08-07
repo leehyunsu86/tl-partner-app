@@ -144,8 +144,20 @@ export default function Page() {
       const autoLoginPref = window.localStorage.getItem("tl_auto_login") === "1";
       setAutoLogin(autoLoginPref);
 
-      // 자동로그인을 체크해두신 경우에만 로그인 화면을 건너뛰고 바로 들어가요.
-      if (autoLoginPref) {
+      // 지금 화면이 그려진 원인이 "뒤로가기(브라우저 히스토리 이동)"인지,
+      // 아니면 "새로고침/새로 접속"인지 구분해요.
+      // - 뒤로가기로 인한 경우: 사용자가 실제로 로그아웃을 한 게 아니므로 항상 로그인 상태를 복구해요.
+      // - 새로고침/새 접속인 경우: "자동로그인" 체크 여부를 따라요.
+      let navType = "navigate";
+      try {
+        const navEntries = window.performance.getEntriesByType("navigation");
+        if (navEntries && navEntries[0]) navType = navEntries[0].type;
+      } catch (e) {
+        // 무시
+      }
+      const isBackForward = navType === "back_forward";
+
+      if (autoLoginPref || isBackForward) {
         const sessionCode = window.localStorage.getItem("tl_session_code");
         if (sessionCode) {
           setMerchantCode(sessionCode);
@@ -199,14 +211,13 @@ export default function Page() {
         } else {
           window.localStorage.removeItem("tl_saved_phone");
         }
+        // 세션 코드는 항상 저장해요 (뒤로가기로 화면이 다시 그려져도 로그인 상태를 유지하기 위해 필요해요).
+        // "자동로그인" 체크 여부는 새로고침·재접속 시에만 영향을 줘요.
+        window.localStorage.setItem("tl_session_code", json.merchant.code);
         if (autoLogin) {
-          // 자동로그인 체크 시에만 세션을 저장해서, 다음에 새로고침/재접속해도 바로 로그인된 상태로 시작해요.
           window.localStorage.setItem("tl_auto_login", "1");
-          window.localStorage.setItem("tl_session_code", json.merchant.code);
         } else {
           window.localStorage.removeItem("tl_auto_login");
-          window.localStorage.removeItem("tl_session_code");
-          window.localStorage.removeItem("tl_cached_data");
         }
       } catch (e) {
         // localStorage 접근 불가 - 그냥 무시
