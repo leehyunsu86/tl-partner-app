@@ -467,6 +467,7 @@ function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewR
   const openCount = data.requests.filter((r) => r.status !== "done").length;
   const rewardCount = data.referrals.filter((r) => r.status === "rewarded").length;
   const [faqOpenSet, setFaqOpenSet] = useState(() => new Set());
+  const [faqSectionOpen, setFaqSectionOpen] = useState(false);
   function toggleFaq(i) {
     setFaqOpenSet((prev) => {
       const next = new Set(prev);
@@ -493,7 +494,7 @@ function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewR
           </div>
           <div className="name" style={{ marginTop: 0 }}>{data.store.name} 사장님, 안녕하세요 👋</div>
           <div className="stats">
-            <div className="stat">
+            <div className="stat stat-click" onClick={() => onGoTab("jobs")}>
               <span>진행중 요청</span>
               <b>{openCount}건</b>
             </div>
@@ -589,29 +590,37 @@ function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewR
             </div>
           ))}
         </div>
-        <div className="section-title">자주 묻는 질문</div>
-        <div className="card" style={{ padding: 6 }}>
-          {FAQ_ITEMS.map((item, i) => {
-            const open = faqOpenSet.has(i);
-            return (
-              <div className={`faq-item ${open ? "open" : ""}`} key={i}>
-                <div className="faq-q" onClick={() => toggleFaq(i)}>
-                  <span className="faq-q-mark">Q</span>
-                  <span className="faq-q-text">{item.q}</span>
-                  <Icon name="chev" className="faq-chev" />
-                </div>
-                <div className="faq-a-wrap">
-                  <div className="faq-a-inner">
-                    <div className="faq-a">
-                      <span className="faq-a-mark">A</span>
-                      <span className="faq-a-text">{item.a}</span>
+        <div
+          className="section-title faq-section-title"
+          onClick={() => setFaqSectionOpen((v) => !v)}
+        >
+          자주 묻는 질문
+          <Icon name="chev" className={`faq-section-chev ${faqSectionOpen ? "open" : ""}`} />
+        </div>
+        {faqSectionOpen && (
+          <div className="card" style={{ padding: 6 }}>
+            {FAQ_ITEMS.map((item, i) => {
+              const open = faqOpenSet.has(i);
+              return (
+                <div className={`faq-item ${open ? "open" : ""}`} key={i}>
+                  <div className="faq-q" onClick={() => toggleFaq(i)}>
+                    <span className="faq-q-mark">Q</span>
+                    <span className="faq-q-text">{item.q}</span>
+                    <Icon name="chev" className="faq-chev" />
+                  </div>
+                  <div className="faq-a-wrap">
+                    <div className="faq-a-inner">
+                      <div className="faq-a">
+                        <span className="faq-a-mark">A</span>
+                        <span className="faq-a-text">{item.a}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </>
   );
