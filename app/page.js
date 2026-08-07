@@ -600,12 +600,14 @@ function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewR
                   <span className="faq-q-text">{item.q}</span>
                   <Icon name="chev" className="faq-chev" />
                 </div>
-                {open && (
-                  <div className="faq-a">
-                    <span className="faq-a-mark">A</span>
-                    <span className="faq-a-text">{item.a}</span>
+                <div className="faq-a-wrap">
+                  <div className="faq-a-inner">
+                    <div className="faq-a">
+                      <span className="faq-a-mark">A</span>
+                      <span className="faq-a-text">{item.a}</span>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

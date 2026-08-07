@@ -207,7 +207,7 @@ body{
 
 .topbar-spacer{ width:38px; flex:none; }
 .brand-top{ position:absolute; left:calc(50% - 6px); top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; }
-.brand-top img{ width:112px; height:auto; display:block; }
+.brand-top img{ width:150px; height:auto; display:block; }
 
 .gift-hero{ background:var(--ink); border-radius:var(--radius-lg); padding:26px 22px; color:#fff; position:relative; overflow:hidden; }
 .gift-hero:before{ content:""; position:absolute; right:-40px; bottom:-50px; width:180px; height:180px; border-radius:50%; background:linear-gradient(135deg, var(--gift), transparent 70%); opacity:.5; }
@@ -232,8 +232,11 @@ body{
 .faq-q{ display:flex; align-items:flex-start; gap:10px; padding:14px 10px; cursor:pointer; }
 .faq-q-mark{ flex:none; width:22px; height:22px; border-radius:7px; background:var(--primary-soft); color:var(--primary); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
 .faq-q-text{ flex:1; font-size:14px; font-weight:700; letter-spacing:-.01em; line-height:1.45; padding-top:1px; }
-.faq-chev{ flex:none; margin-top:3px; transition:transform .18s ease; }
+.faq-chev{ flex:none; margin-top:3px; transition:transform .22s ease; }
 .faq-item.open .faq-chev{ transform:rotate(90deg); }
+.faq-a-wrap{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1); }
+.faq-item.open .faq-a-wrap{ grid-template-rows:1fr; }
+.faq-a-inner{ overflow:hidden; }
 .faq-a{ display:flex; align-items:flex-start; gap:10px; padding:0 10px 16px 10px; }
 .faq-a-mark{ flex:none; width:22px; height:22px; border-radius:7px; background:var(--surface-alt); color:var(--ink-soft); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
 .faq-a-text{ flex:1; font-size:13.5px; color:var(--ink-soft); line-height:1.6; white-space:pre-line; }
