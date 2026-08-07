@@ -10,6 +10,7 @@ import {
   stepsFor,
   REFERRAL_STEP_DEFS,
   BIZ_TYPES,
+  FAQ_ITEMS,
 } from "@/lib/constants";
 
 export default function Page() {
@@ -27,6 +28,7 @@ export default function Page() {
   const [sheet, setSheet] = useState(null); // 'request' | 'referral' | null
   const [sheetDefaultType, setSheetDefaultType] = useState("paper");
   const [sheetTypeLocked, setSheetTypeLocked] = useState(true);
+  const [faqOpen, setFaqOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [toastShow, setToastShow] = useState(false);
   const [jobsFilter, setJobsFilter] = useState("all");
@@ -53,8 +55,8 @@ export default function Page() {
   // 뒤로가기(모바일 브라우저/제스처) 처리
   // - 홈이 아닌 곳(팝업, 상세보기, 다른 탭)에서 뒤로가기 -> 바로 홈 화면으로
   // - 홈 화면에서 뒤로가기 -> "종료하시겠습니까?" 확인창 표시
-  const navStateRef = useRef({ tab: "home", sheet: null, detail: null });
-  navStateRef.current = { tab, sheet, detail };
+  const navStateRef = useRef({ tab: "home", sheet: null, detail: null, faqOpen: false });
+  navStateRef.current = { tab, sheet, detail, faqOpen };
   const allowExitRef = useRef(false);
   const [exitConfirm, setExitConfirm] = useState(false);
 
@@ -75,14 +77,15 @@ export default function Page() {
     function onPopState() {
       if (allowExitRef.current) return; // 종료 확정 - 더 이상 막지 않음
 
-      const { tab, sheet, detail } = navStateRef.current;
-      const atHome = tab === "home" && !sheet && !detail;
+      const { tab, sheet, detail, faqOpen } = navStateRef.current;
+      const atHome = tab === "home" && !sheet && !detail && !faqOpen;
 
       if (!atHome) {
         // 홈이 아닌 곳 -> 어디서든 바로 홈으로
         setTab("home");
         setSheet(null);
         setDetail(null);
+        setFaqOpen(false);
         window.history.pushState({ appGuard: true }, "");
         return;
       }
@@ -169,6 +172,7 @@ export default function Page() {
     setTab("home");
     setSheet(null);
     setDetail(null);
+    setFaqOpen(false);
     try {
       window.localStorage.removeItem("tl_session_code");
       window.localStorage.removeItem("tl_cached_data");
@@ -187,6 +191,7 @@ export default function Page() {
     setTab(t);
     setSheet(null);
     setDetail(null);
+    setFaqOpen(false);
   }
   function closeSheet() {
     setSheet(null);
@@ -329,7 +334,9 @@ export default function Page() {
     <div className="app-shell">
       <div id="app">
         <div>
-          {detail ? (
+          {faqOpen ? (
+            <Faq onBack={() => setFaqOpen(false)} />
+          ) : detail ? (
             detail.kind === "referral" ? (
               <ReferralDetail data={data} id={detail.id} onBack={closeDetail} />
             ) : (
@@ -368,7 +375,13 @@ export default function Page() {
               onGoTab={goTab}
             />
           ) : (
-            <My data={data} onLogout={logout} onToast={showToast} onChangePassword={() => setSheet("password")} />
+            <My
+              data={data}
+              onLogout={logout}
+              onToast={showToast}
+              onChangePassword={() => setSheet("password")}
+              onOpenFaq={() => setFaqOpen(true)}
+            />
           )}
         </div>
 
@@ -844,7 +857,7 @@ function ReferralDetail({ data, id, onBack }) {
 }
 
 /* ---------------- 마이 ---------------- */
-function My({ data, onLogout, onToast, onChangePassword }) {
+function My({ data, onLogout, onToast, onChangePassword, onOpenFaq }) {
   const s = data.store;
   return (
     <>
@@ -914,6 +927,12 @@ function My({ data, onLogout, onToast, onChangePassword }) {
         </div>
         <div className="section-title">지원</div>
         <div className="card">
+          <div className="list-item" onClick={onOpenFaq}>
+            <div className="li-title">자주 묻는 질문</div>
+            <div className="li-right">
+              <Icon name="chev" />
+            </div>
+          </div>
           <div className="list-item" onClick={() => onToast("1:1 문의는 준비 중이에요")}>
             <div className="li-title">1:1 문의하기</div>
             <div className="li-right">
@@ -930,6 +949,56 @@ function My({ data, onLogout, onToast, onChangePassword }) {
         <button className="btn btn-ghost btn-block" style={{ marginTop: 20 }} onClick={onLogout}>
           로그아웃
         </button>
+      </div>
+    </>
+  );
+}
+
+/* ---------------- 자주 묻는 질문 (FAQ) ---------------- */
+function Faq({ onBack }) {
+  const [openSet, setOpenSet] = useState(() => new Set());
+
+  function toggle(i) {
+    setOpenSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="icon-btn" onClick={onBack}>
+          <Icon name="back" />
+        </div>
+        <div style={{ flex: 1, marginLeft: 10 }}>
+          <h1>자주 묻는 질문</h1>
+          <div className="sub">가맹점주님들이 자주 물어보시는 내용이에요</div>
+        </div>
+      </div>
+      <div className="view">
+        <div className="card" style={{ padding: 6 }}>
+          {FAQ_ITEMS.map((item, i) => {
+            const open = openSet.has(i);
+            return (
+              <div className={`faq-item ${open ? "open" : ""}`} key={i}>
+                <div className="faq-q" onClick={() => toggle(i)}>
+                  <span className="faq-q-mark">Q</span>
+                  <span className="faq-q-text">{item.q}</span>
+                  <Icon name="chev" className="faq-chev" />
+                </div>
+                {open && (
+                  <div className="faq-a">
+                    <span className="faq-a-mark">A</span>
+                    <span className="faq-a-text">{item.a}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </>
   );
