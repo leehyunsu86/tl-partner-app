@@ -3,22 +3,6 @@ import "./globals.css";
 export const metadata = {
   title: "티엘정보통신 가맹점 센터",
   description: "티엘정보통신 가맹점 파트너 전용 웹앱",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "가맹점 센터",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-};
-
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
-  themeColor: "#3182F6",
 };
 
 export default function RootLayout({ children }) {
@@ -34,6 +18,13 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="theme-color" content="#3182F6" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="가맹점 센터" />
+        <meta name="format-detection" content="telephone=no" />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <link rel="icon" href="/icon-192.png" />
       </head>
