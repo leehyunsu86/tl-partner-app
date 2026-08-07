@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Icon from "@/components/Icon";
 import { Badge, MiniTrack, Track } from "@/components/Status";
 import {
@@ -40,6 +40,41 @@ export default function Page() {
   useEffect(() => {
     if (loggedIn && merchantCode) loadData();
   }, [loggedIn, merchantCode, loadData]);
+
+  // 뒤로가기(모바일 브라우저/제스처) 눌렀을 때 바로 꺼지지 않고 확인창을 띄워요.
+  // 팝업/상세화면/다른 탭이 열려있으면 그것부터 닫고, 홈 화면에서 뒤로가기를 누르면 종료 여부를 물어봐요.
+  const navStateRef = useRef({});
+  navStateRef.current = { tab, sheet, detail };
+
+  useEffect(() => {
+    window.history.pushState({ appGuard: true }, "");
+    function onPopState() {
+      const { tab, sheet, detail } = navStateRef.current;
+      if (sheet) {
+        setSheet(null);
+        window.history.pushState({ appGuard: true }, "");
+        return;
+      }
+      if (detail) {
+        setDetail(null);
+        window.history.pushState({ appGuard: true }, "");
+        return;
+      }
+      if (tab !== "home") {
+        setTab("home");
+        window.history.pushState({ appGuard: true }, "");
+        return;
+      }
+      const wantsExit = window.confirm("앱을 종료하시겠습니까?");
+      if (wantsExit) {
+        window.history.back();
+      } else {
+        window.history.pushState({ appGuard: true }, "");
+      }
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   function showToast(msg) {
     setToastMsg(msg);
