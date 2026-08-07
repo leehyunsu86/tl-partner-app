@@ -96,6 +96,11 @@ export default function Page() {
         setLoginPhone(saved);
         setRememberId(true);
       }
+      const sessionCode = window.localStorage.getItem("tl_session_code");
+      if (sessionCode) {
+        setMerchantCode(sessionCode);
+        setLoggedIn(true);
+      }
     } catch (e) {
       // localStorage 접근 불가 (프라이빗 모드 등) - 그냥 무시
     }
@@ -129,6 +134,9 @@ export default function Page() {
         } else {
           window.localStorage.removeItem("tl_saved_phone");
         }
+        // 로그인 세션을 저장해둬서, 뒤로가기 등으로 화면이 다시 그려져도
+        // 로그인 화면이 다시 뜨지 않고 바로 복구되게 해요.
+        window.localStorage.setItem("tl_session_code", json.merchant.code);
       } catch (e) {
         // localStorage 접근 불가 - 그냥 무시
       }
@@ -147,6 +155,11 @@ export default function Page() {
     setTab("home");
     setSheet(null);
     setDetail(null);
+    try {
+      window.localStorage.removeItem("tl_session_code");
+    } catch (e) {
+      // 무시
+    }
   }
 
   function openDetail(id, kind) {
