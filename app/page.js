@@ -42,41 +42,39 @@ export default function Page() {
     if (loggedIn && merchantCode) loadData();
   }, [loggedIn, merchantCode, loadData]);
 
-  // 뒤로가기(모바일 브라우저/제스처) 눌렀을 때 바로 꺼지지 않게 해요.
-  // 팝업/상세화면/다른 탭이 열려있으면 그것부터 닫고, 홈 화면에서 뒤로가기를 두 번 눌러야 종료돼요.
-  // (모바일 브라우저에서 confirm() 팝업이 뒤로가기 이벤트와 함께 쓰이면 불안정하게 무시되는 경우가 있어
-  //  카카오톡 등에서 흔히 쓰는 "한 번 더 누르면 종료" 토스트 방식을 사용해요)
-  const navStateRef = useRef({});
-  navStateRef.current = { tab, sheet, detail };
+  // 뒤로가기(모바일 브라우저/제스처) 처리
+  // 화면 이동(탭 전환, 팝업 열기, 상세보기 진입)마다 브라우저 히스토리에 항목을 하나씩 남겨서,
+  // 뒤로가기를 누르면 그 항목들을 하나씩 되짚어가도록 만들어요. 맨 처음(홈, 팝업/상세 없음)까지
+  // 돌아온 상태에서 뒤로가기를 누르면, 바로 꺼지지 않고 "한번 더 누르면 종료" 토스트를 보여줘요.
   const lastBackPressRef = useRef(0);
 
+  const navigate = useCallback((next) => {
+    setTab(next.tab);
+    setSheet(next.sheet || null);
+    setDetail(next.detail || null);
+    window.history.pushState(next, "");
+  }, []);
+
   useEffect(() => {
-    window.history.pushState({ appGuard: true }, "");
-    function onPopState() {
-      const { tab, sheet, detail } = navStateRef.current;
-      if (sheet) {
-        setSheet(null);
-        window.history.pushState({ appGuard: true }, "");
+    window.history.replaceState({ tab: "home", sheet: null, detail: null }, "");
+
+    function onPopState(e) {
+      const state = e.state;
+      if (state && typeof state === "object" && "tab" in state) {
+        setTab(state.tab);
+        setSheet(state.sheet || null);
+        setDetail(state.detail || null);
         return;
       }
-      if (detail) {
-        setDetail(null);
-        window.history.pushState({ appGuard: true }, "");
-        return;
-      }
-      if (tab !== "home") {
-        setTab("home");
-        window.history.pushState({ appGuard: true }, "");
-        return;
-      }
+      // 우리가 기록한 화면 상태를 벗어났다 = 앱을 나가려는 시도
       const now = Date.now();
       if (now - lastBackPressRef.current < 2200) {
-        // 2.2초 안에 다시 뒤로가기 -> 진짜 종료
+        // 2.2초 안에 다시 뒤로가기 -> 진짜 종료 (그대로 두면 브라우저가 실제로 나가요)
         return;
       }
       lastBackPressRef.current = now;
       showToast("뒤로가기를 한번 더 누르면 종료돼요");
-      window.history.pushState({ appGuard: true }, "");
+      window.history.pushState({ tab: "home", sheet: null, detail: null }, "");
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -138,18 +136,28 @@ export default function Page() {
     setMerchantCode(null);
     setData(null);
     setTab("home");
+    setSheet(null);
     setDetail(null);
+    window.history.replaceState({ tab: "home", sheet: null, detail: null }, "");
   }
 
   function openDetail(id, kind) {
-    setDetail({ id, kind });
+    navigate({ tab, sheet: null, detail: { id, kind } });
   }
   function closeDetail() {
-    setDetail(null);
+    window.history.back();
   }
   function goTab(t) {
-    setTab(t);
-    setDetail(null);
+    navigate({ tab: t, sheet: null, detail: null });
+  }
+  function goBack() {
+    window.history.back();
+  }
+  function completeTo(next) {
+    setTab(next.tab);
+    setSheet(next.sheet || null);
+    setDetail(next.detail || null);
+    window.history.replaceState(next, "");
   }
 
   async function submitRequest({ type, note, phone }) {
@@ -163,9 +171,8 @@ export default function Page() {
       showToast("요청 접수에 실패했어요");
       return;
     }
-    setSheet(null);
+    completeTo({ tab: "jobs", sheet: null, detail: null });
     showToast("요청이 접수되었어요. 임직원 시스템으로 전달됩니다.");
-    setTab("jobs");
     setJobsFilter("all");
     loadData();
   }
@@ -181,9 +188,8 @@ export default function Page() {
       showToast(err.error || "소개 접수에 실패했어요");
       return;
     }
-    setSheet(null);
+    completeTo({ tab: "referral", sheet: null, detail: null });
     showToast("소개가 접수되었어요! 심사 진행 상황을 이벤트 탭에서 확인하세요.");
-    setTab("referral");
     loadData();
   }
 
@@ -198,7 +204,7 @@ export default function Page() {
       showToast(json.error || "비밀번호 변경에 실패했어요");
       return false;
     }
-    setSheet(null);
+    completeTo({ tab: "my", sheet: null, detail: null });
     showToast("비밀번호가 변경되었어요.");
     return true;
   }
@@ -280,9 +286,9 @@ export default function Page() {
               onNewRequest={(type) => {
                 setSheetDefaultType(type);
                 setSheetTypeLocked(true);
-                setSheet("request");
+                navigate({ tab, sheet: "request", detail: null });
               }}
-              onNewReferral={() => setSheet("referral")}
+              onNewReferral={() => navigate({ tab, sheet: "referral", detail: null })}
             />
           ) : tab === "jobs" ? (
             <Jobs
@@ -293,18 +299,18 @@ export default function Page() {
               onNewRequest={() => {
                 setSheetDefaultType("paper");
                 setSheetTypeLocked(false);
-                setSheet("request");
+                navigate({ tab, sheet: "request", detail: null });
               }}
             />
           ) : tab === "referral" ? (
             <Referral
               data={data}
               onOpenDetail={openDetail}
-              onNewReferral={() => setSheet("referral")}
+              onNewReferral={() => navigate({ tab, sheet: "referral", detail: null })}
               onGoTab={goTab}
             />
           ) : (
-            <My data={data} onLogout={logout} onToast={showToast} onChangePassword={() => setSheet("password")} />
+            <My data={data} onLogout={logout} onToast={showToast} onChangePassword={() => navigate({ tab, sheet: "password", detail: null })} />
           )}
         </div>
 
@@ -315,23 +321,23 @@ export default function Page() {
           <TabButton active={tab === "my" && !detail} onClick={() => goTab("my")} label="마이" iconPath="M12 8a4 4 0 100-8 4 4 0 000 8zM4 21c1.6-4 5-6 8-6s6.4 2 8 6" />
         </div>
 
-        <div className={`sheet-backdrop ${sheet ? "show" : ""}`} onClick={() => setSheet(null)}></div>
+        <div className={`sheet-backdrop ${sheet ? "show" : ""}`} onClick={goBack}></div>
         <div className={`sheet ${sheet ? "show" : ""}`}>
           {sheet === "request" && (
             <NewRequestSheet
               defaultType={sheetDefaultType}
               lockType={sheetTypeLocked}
               defaultPhone={data.store.phone}
-              onClose={() => setSheet(null)}
+              onClose={goBack}
               onSubmit={submitRequest}
             />
           )}
           {sheet === "referral" && (
-            <ReferralSheet onClose={() => setSheet(null)} onSubmit={submitReferral} />
+            <ReferralSheet onClose={goBack} onSubmit={submitReferral} />
           )}
           {sheet === "password" && (
             <PasswordChangeSheet
-              onClose={() => setSheet(null)}
+              onClose={goBack}
               onSubmit={submitPasswordChange}
             />
           )}
