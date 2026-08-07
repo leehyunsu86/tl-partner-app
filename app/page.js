@@ -359,7 +359,7 @@ export default function Page() {
           <TabButton active={tab === "home" && !detail} onClick={() => goTab("home")} label="홈" iconPath="M3 11l9-8 9 8M5 10v10h14V10" />
           <TabButton active={tab === "jobs" && !detail} onClick={() => goTab("jobs")} label="요청함" iconPath="M9 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-3M9 15L19 5M13 5h6v6" />
           <TabButton active={tab === "referral" && !detail} onClick={() => goTab("referral")} label="이벤트" iconPath="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 3 6.5 3 3 5 3 6.5 5 9 12 7zM12 7s3-4 5.5-4S21 5 21 6.5 19 9 12 7z" />
-          <TabButton active={tab === "my" && !detail} onClick={() => goTab("my")} label="마이" iconPath="M12 8a4 4 0 100-8 4 4 0 000 8zM4 21c1.6-4 5-6 8-6s6.4 2 8 6" />
+          <TabButton active={tab === "my" && !detail} onClick={() => goTab("my")} label="마이페이지" iconPath="M12 8a4 4 0 100-8 4 4 0 000 8zM4 21c1.6-4 5-6 8-6s6.4 2 8 6" />
         </div>
 
         <div className={`sheet-backdrop ${sheet ? "show" : ""}`} onClick={closeSheet}></div>
@@ -829,7 +829,7 @@ function My({ data, onLogout, onToast, onChangePassword }) {
     <>
       <div className="topbar">
         <div>
-          <h1>마이</h1>
+          <h1>마이페이지</h1>
           <div className="sub">가맹점 정보 및 계정</div>
         </div>
       </div>
@@ -853,9 +853,7 @@ function My({ data, onLogout, onToast, onChangePassword }) {
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 16 }}>{s.name}</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
-              {s.code} · {s.owner} 사장님
-            </div>
+            <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{s.owner} 사장님</div>
           </div>
         </div>
         <div className="section-title">매장 정보</div>
@@ -901,7 +899,7 @@ function My({ data, onLogout, onToast, onChangePassword }) {
               <Icon name="chev" />
             </div>
           </div>
-          <div className="list-item" onClick={() => onToast("고객센터: 1588-0000")}>
+          <div className="list-item" onClick={() => onToast("고객센터: 1551-5792")}>
             <div className="li-title">고객센터 안내</div>
             <div className="li-right">
               <Icon name="chev" />
