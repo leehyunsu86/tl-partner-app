@@ -473,6 +473,9 @@ function Home({ data, onOpenNotices, onOpenDetail, onGoTab, onNewRequest, onNewR
       </div>
       <div className="view">
         <div className="hero">
+          <div className="hero-illust">
+            <PosIllustration variant="mono" />
+          </div>
           <div className="name" style={{ marginTop: 0 }}>{data.store.name} 사장님, 안녕하세요 👋</div>
           <div className="stats">
             <div className="stat">

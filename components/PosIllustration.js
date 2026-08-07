@@ -1,4 +1,21 @@
-export default function PosIllustration() {
+export default function PosIllustration({ variant = "dark" }) {
+  if (variant === "mono") {
+    // 블루 배경 카드 위에 은은하게 얹는 워터마크형 버전
+    return (
+      <svg width="150" height="130" viewBox="0 0 150 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g transform="rotate(-4 75 55)" opacity="0.9">
+          <rect x="34" y="8" width="82" height="90" rx="16" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
+          <rect x="41" y="15" width="68" height="58" rx="8" fill="rgba(255,255,255,0.16)" />
+          <rect x="47" y="22" width="38" height="6" rx="3" fill="rgba(255,255,255,0.55)" />
+          <rect x="47" y="34" width="56" height="4" rx="2" fill="rgba(255,255,255,0.3)" />
+          <rect x="47" y="42" width="48" height="4" rx="2" fill="rgba(255,255,255,0.22)" />
+          <rect x="47" y="58" width="28" height="10" rx="5" fill="rgba(255,255,255,0.5)" />
+        </g>
+        <path d="M28 46C24 42 24 36 28 32" stroke="rgba(255,255,255,0.4)" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M22 50C15 43 15 28 22 21" stroke="rgba(255,255,255,0.25)" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
   return (
     <svg width="132" height="112" viewBox="0 0 132 112" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* 바닥 그림자 */}
