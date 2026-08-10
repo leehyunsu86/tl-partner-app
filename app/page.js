@@ -14,6 +14,14 @@ import {
 } from "@/lib/constants";
 
 export default function Page() {
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // 등록 실패해도 앱 사용에는 지장 없음
+      });
+    }
+  }, []);
+
   const [loggedIn, setLoggedIn] = useState(false);
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
